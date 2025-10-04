@@ -1,0 +1,88 @@
+#pragma kernel RecalcNormals
+#pragma kernel SmoothNormals
+
+RWStructuredBuffer<float3> vertices;
+RWStructuredBuffer<float3> normals;
+RWStructuredBuffer<float4> realNormals;
+RWStructuredBuffer<float4> tangents;
+RWStructuredBuffer<float2> uv6;
+RWStructuredBuffer<float2> uv7;
+RWStructuredBuffer<int> triangles;
+
+[numthreads(128, 1, 1)]
+void RecalcNormals(int3 id : SV_DispatchThreadID){
+    int vertexIndex = id.x;
+
+    float3 normal = 0;
+    float angleSum = 0;
+
+    for (uint i = 0; i < triangles.Length; i += 3){
+        int index0 = triangles[i];
+        int index1 = triangles[i + 1];
+        int index2 = triangles[i + 2];
+
+        if (index0 == vertexIndex || index1 == vertexIndex || index2 == vertexIndex){
+            float3 v0 = vertices[index0];
+            float3 v1 = vertices[index1];
+            float3 v2 = vertices[index2];
+
+            float3 a = normalize(v1 - v0);
+            float3 b = normalize(v2 - v1);
+            float3 c = normalize(v0 - v2);
+
+            float3 faceNormal = normalize(cross(a, -c));
+
+            float angle;
+            if (vertexIndex == index0){
+                angle = acos(dot(a, -c));
+            }
+            else if (vertexIndex == index1){
+                angle = acos(dot(b, -a));
+            }
+            else{
+                angle = acos(dot(c, -b));
+            }
+
+            float area = length(cross(a, -c));
+
+            normal += faceNormal * angle;
+            angleSum += angle;
+        }
+    }
+
+    realNormals[vertexIndex] = float4((normal), angleSum);
+}
+
+
+[numthreads(128, 1, 1)]
+void SmoothNormals(uint3 id : SV_DispatchThreadID){
+    uint index = id.x;
+
+    float angle = 0;
+
+    float3 avgNormal = 0;
+    for (uint i = 0; i < vertices.Length; i++){
+        // float3 dist = vertices[i] - vertices[index];
+        if (all(vertices[i] == vertices[index])){
+            // if (dot(dist, dist) < 0.00000001){
+            float4 n = realNormals[i];
+            avgNormal += n.xyz;
+            angle += abs(n.w);
+        }
+    }
+    avgNormal = normalize(avgNormal);
+
+    // realNormals[index] = float4(avgNormal, 0);
+
+    float3 normal = normalize(normals[index]);
+    float3 tangent = normalize(tangents[index].xyz);
+    float3 bitangent = normalize(cross(normal, tangent));
+
+    // realNormals[index] = float4(avgNormal, 0);
+    float3x3 tangentSpaceMatrix = float3x3(tangent, bitangent, normal);
+
+    float3 smoothedNormalOffset = mul(tangentSpaceMatrix, avgNormal);
+
+    uv6[index] = smoothedNormalOffset.xy;
+    uv7[index] = float2(smoothedNormalOffset.z, sqrt(1 / angle));
+}
