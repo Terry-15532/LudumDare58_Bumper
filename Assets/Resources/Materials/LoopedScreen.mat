@@ -1,0 +1,109 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: LoopedScreen
+  m_Shader: {fileID: 4800000, guid: 31fecc6d6fac5914fb9ce2bfda8b337b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _SHOW_OUTLINE_INNER
+  - _SHOW_OUTLINE_OUTER
+  - _SHOW_SPOTS
+  - _USE_SMOOTHED_NORMAL
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 4d17a6fcb965ea245be7b63f8665db63, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints:
+    - _CastShadow: 0
+    - _DiffuseSteps: 3
+    - _NormalDebug: 0
+    - _ObjectSpaceNormalMap: 0
+    - _OverrideBias: 0
+    - _PerVertexNormal: 0
+    - _RcvShadow: 0
+    - _ShadowSteps: 3
+    - _ShowFresnel: 0
+    - _ShowInnerOutline: 1
+    - _ShowOuterOutline: 1
+    - _ShowSpecular: 0
+    - _ShowSpot: 1
+    - _SmoothNormalDiffuse: 0
+    - _SmoothNormalShadow: 0
+    - _SmoothNormalSpecular: 0
+    - _StencilVal: 5
+    - _UnpackNormal: 0
+    - _UseNormalMap: 0
+    - _UseSmoothedNormal: 1
+    m_Floats:
+    - _CullMode: 3
+    - _DepthBias: 0
+    - _DepthTexture: 0
+    - _DiffuseHardness: 1
+    - _DiffuseOffset: 0.5
+    - _DiffuseRange: 1
+    - _DiffuseStrength: 1
+    - _Emission: 1
+    - _FadeWithDiffuse: 0
+    - _FadeWithShadow: 1
+    - _FresnelRange: 0.5
+    - _FresnelStrength: 0
+    - _GBuffer: 0
+    - _InnerStencilComp: 3
+    - _InnerWidth: 1
+    - _InnerZOffset: 10
+    - _LightEffect: 1
+    - _LightEffectOnOutline: 1
+    - _NormalBias: 0
+    - _NormalMapStrength: 1
+    - _OuterStencilComp: 6
+    - _OuterWidth: 1
+    - _OuterZOffset: 10
+    - _ShadowHardness: 1
+    - _ShadowNormalThreshold: 0.2
+    - _ShadowNormalTransition: 0.2
+    - _ShadowOffset: 0
+    - _SpecularHardness: 0.1
+    - _SpecularOffset: 0
+    - _SpecularRange: 1
+    - _SpecularThreshold: 0.5
+    - _SpotDensity: 1
+    - _SpotOffset: 0
+    - _SpotRadius: 1
+    - _ZTest: 2
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DiffuseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
+    - _InnerOutlineColor: {r: 1, g: 1, b: 1, a: 1}
+    - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
+    - _OuterOutlineColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RotateNormal: {r: 0, g: 0, b: 0, a: 1}
+    - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.3}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpotColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
+    - _UVScale: {r: 1, g: 1, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

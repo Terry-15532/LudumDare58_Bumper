@@ -11,12 +11,12 @@ Shader "Custom/Emission"{
 
     SubShader{
         Tags{
-            "Queue" = "Transparent"
-            "RenderType" = "Sprite"
+            "Queue" = "Geometry"
+            "RenderType" = "Opaque"
         }
         LOD 100
 
-        ZWrite off
+        ZWrite On
         Cull off
         Blend SrcAlpha OneMinusSrcAlpha
 
@@ -24,13 +24,49 @@ Shader "Custom/Emission"{
             Ref [_Stencil]
             Comp LEqual
         }
+        
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags
+            {
+                "LightMode" = "ShadowCaster"
+            }
+
+            HLSLPROGRAM
+            #pragma shader_feature _CAST_SHADOW
+            #pragma shader_feature _OVERRIDE_BIAS
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
+            #pragma vertex CustomShadowVertex
+            #pragma fragment ShadowPassFragment
+
+            float _DepthBias, _NormalBias;
+            bool _OverrideBias;
+
+            Varyings CustomShadowVertex(Attributes v)
+            {
+                #if _CAST_SHADOW
+                #if _OVERRIDE_BIAS
+                    _ShadowBias.xy = float2(_DepthBias / -10, _NormalBias / -10);
+                #endif
+				return ShadowPassVertex(v);
+                #else
+                Varyings varyings = ShadowPassVertex(v);
+                varyings.positionCS = float4(-1, -1, -1, -100);
+                return varyings;
+                #endif
+            }
+            ENDHLSL
+        }
 
         Pass{
-            CGPROGRAM
+            HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
 
-            #include "UnityCG.cginc"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
 
             struct appdata{
@@ -52,7 +88,7 @@ Shader "Custom/Emission"{
 
             v2f vert(appdata v){
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.vertex = TransformObjectToHClip(v.vertex);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 o.color = v.color;
                 return o;
@@ -63,7 +99,7 @@ Shader "Custom/Emission"{
                 float4 color = _Color * (_Emission + 1);
                 return float4(color.rgb, a) * i.color;
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }

@@ -1,0 +1,1 @@
+public class EmptyMono : UnityEngine.MonoBehaviour{ }

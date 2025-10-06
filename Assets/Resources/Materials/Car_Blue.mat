@@ -14,7 +14,6 @@ Material:
   m_ValidKeywords:
   - _CAST_SHADOW
   - _RCV_SHADOW
-  - _SHOW_OUTLINE_INNER
   - _SHOW_OUTLINE_OUTER
   - _SHOW_SPECULAR
   m_InvalidKeywords: []
@@ -98,7 +97,7 @@ Material:
     - _RcvShadow: 1
     - _ShadowSteps: 3
     - _ShowFresnel: 0
-    - _ShowInnerOutline: 1
+    - _ShowInnerOutline: 0
     - _ShowOuterOutline: 1
     - _ShowSpecular: 1
     - _ShowSpot: 0
@@ -143,13 +142,13 @@ Material:
     - _InnerStencilComp: 3
     - _InnerWidth: 6
     - _InnerZOffset: 0
-    - _LightEffect: 1
+    - _LightEffect: 0.273
     - _LightEffectOnOutline: 1
     - _Metallic: 0
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 6
+    - _OuterStencilComp: 8
     - _OuterWidth: 6
     - _OuterZOffset: 0
     - _Parallax: 0.005
@@ -177,8 +176,8 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.01218746, g: 0.2781889, b: 0.82210237, a: 1}
-    - _DiffuseColor: {r: 0, g: 0.16901398, b: 1, a: 1}
+    - _Color: {r: 0, g: 0.16203769, b: 0.4932614, a: 1}
+    - _DiffuseColor: {r: 0, g: 0.06863275, b: 0.40700805, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
     - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
@@ -192,6 +191,7 @@ Material:
     - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
     - _UVScale: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &3381050475614923704
 MonoBehaviour:
   m_ObjectHideFlags: 11

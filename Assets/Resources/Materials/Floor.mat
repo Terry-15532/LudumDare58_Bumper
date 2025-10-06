@@ -12,11 +12,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _CAST_SHADOW
   - _RCV_SHADOW
-  - _SHOW_FRESNEL
   - _SHOW_OUTLINE_OUTER
-  - _SHOW_SPECULAR
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -28,6 +25,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -89,7 +90,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _CastShadow: 1
+    - _CastShadow: 0
     - _DiffuseSteps: 3
     - _NormalDebug: 0
     - _ObjectSpaceNormalMap: 0
@@ -97,23 +98,25 @@ Material:
     - _PerVertexNormal: 0
     - _RcvShadow: 1
     - _ShadowSteps: 3
-    - _ShowFresnel: 1
+    - _ShowFresnel: 0
     - _ShowInnerOutline: 0
     - _ShowOuterOutline: 1
-    - _ShowSpecular: 1
+    - _ShowSpecular: 0
     - _ShowSpot: 0
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 1
+    - _StencilVal: 5
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0
     m_Floats:
+    - PixelSnap: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BlendOp: 0
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -124,74 +127,84 @@ Material:
     - _DepthTexture: 0
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DiffuseHardness: 1
-    - _DiffuseOffset: 1.93
-    - _DiffuseRange: 2.42
-    - _DiffuseStrength: 2.37
+    - _DiffuseHardness: 0
+    - _DiffuseOffset: 0.5
+    - _DiffuseRange: 1
+    - _DiffuseStrength: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _Emission: 1
+    - _EnableExternalAlpha: 0
     - _EnvironmentReflections: 1
     - _FadeWithDiffuse: 0
     - _FadeWithShadow: 1
-    - _FresnelRange: 0.17
-    - _FresnelStrength: 0.37
+    - _FresnelRange: 0.5
+    - _FresnelStrength: 0
     - _GBuffer: 0
     - _GlossMapScale: 0
     - _Glossiness: 0
+    - _GlossinessSource: 0
     - _GlossyReflections: 0
     - _InnerStencilComp: 3
-    - _InnerWidth: 6
-    - _InnerZOffset: 0
+    - _InnerWidth: 1
+    - _InnerZOffset: 10
     - _LightEffect: 1
     - _LightEffectOnOutline: 1
     - _Metallic: 0
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 6
+    - _OuterStencilComp: 8
     - _OuterWidth: 10
-    - _OuterZOffset: 0
+    - _OuterZOffset: 10
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _SampleGI: 0
     - _ShadowHardness: 1
     - _ShadowNormalThreshold: 0.2
     - _ShadowNormalTransition: 0.2
     - _ShadowOffset: 0
+    - _Shininess: 0
     - _Smoothness: 0.5
+    - _SmoothnessSource: 0
     - _SmoothnessTextureChannel: 0
-    - _SpecularHardness: 0
+    - _SpecSource: 0
+    - _SpecularHardness: 0.1
     - _SpecularHighlights: 1
     - _SpecularOffset: 0
-    - _SpecularRange: 0.394
+    - _SpecularRange: 1
     - _SpecularThreshold: 0.5
-    - _SpotDensity: 3
-    - _SpotOffset: -0.15
-    - _SpotRadius: 2.31
+    - _SpotDensity: 1
+    - _SpotOffset: 0
+    - _SpotRadius: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _Stencil: 0
     - _Surface: 0
     - _WorkflowMode: 1
     - _ZTest: 2
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.09433949, g: 0.09433949, b: 0.09433949, a: 1}
-    - _DiffuseColor: {r: 0.12668449, g: 0.12668449, b: 0.12668449, a: 1}
+    - _Color: {r: 0.02, g: 0.02, b: 0.02, a: 1}
+    - _DiffuseColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FresnelColor: {r: 0, g: 0, b: 0, a: 1}
-    - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Flip: {r: 1, g: 1, b: 1, a: 1}
+    - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
+    - _InnerOutlineColor: {r: 1, g: 1, b: 1, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
     - _OuterOutlineColor: {r: 0, g: 0, b: 0, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _RotateNormal: {r: 0, g: 0, b: 0, a: 1}
-    - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.5294118}
+    - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.3}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SpecularColor: {r: 0.1482479, g: 0.1482479, b: 0.1482479, a: 1}
-    - _SpotColor: {r: 0, g: 0.027796516, b: 0.20754701, a: 1}
+    - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpotColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
     - _UVScale: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &3381050475614923704
 MonoBehaviour:
   m_ObjectHideFlags: 11

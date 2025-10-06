@@ -89,7 +89,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints:
     - _CastShadow: 1
-    - _DiffuseSteps: 3
+    - _DiffuseSteps: 4
     - _NormalDebug: 0
     - _ObjectSpaceNormalMap: 0
     - _OverrideBias: 0
@@ -123,7 +123,7 @@ Material:
     - _DepthTexture: 0
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DiffuseHardness: 1
+    - _DiffuseHardness: 0.718
     - _DiffuseOffset: 1.93
     - _DiffuseRange: 2.42
     - _DiffuseStrength: 2.37
@@ -140,17 +140,17 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _InnerStencilComp: 3
-    - _InnerWidth: 10
-    - _InnerZOffset: 0
-    - _LightEffect: 1
+    - _InnerWidth: 5
+    - _InnerZOffset: 10
+    - _LightEffect: 0.5
     - _LightEffectOnOutline: 1
     - _Metallic: 0
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 6
-    - _OuterWidth: 10
-    - _OuterZOffset: 0
+    - _OuterStencilComp: 8
+    - _OuterWidth: 5
+    - _OuterZOffset: 10
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
@@ -160,7 +160,7 @@ Material:
     - _ShadowOffset: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
-    - _SpecularHardness: 0.348
+    - _SpecularHardness: 0
     - _SpecularHighlights: 1
     - _SpecularOffset: 0
     - _SpecularRange: 0.219
@@ -176,21 +176,22 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.0576383, g: 0.058978725, b: 0.063, a: 1}
-    - _DiffuseColor: {r: 0.07471971, g: 0.11295172, b: 0.18059295, a: 1}
+    - _Color: {r: 0.028649999, g: 0.028649999, b: 0.03, a: 1}
+    - _DiffuseColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
     - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
     - _OuterOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RotateNormal: {r: 0, g: 0, b: 0, a: 1}
-    - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.3}
+    - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.44313726}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 0.15120845, g: 0.16319615, b: 0.20215619, a: 1}
     - _SpotColor: {r: 0, g: 0.027796516, b: 0.20754701, a: 1}
     - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
     - _UVScale: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &3381050475614923704
 MonoBehaviour:
   m_ObjectHideFlags: 11

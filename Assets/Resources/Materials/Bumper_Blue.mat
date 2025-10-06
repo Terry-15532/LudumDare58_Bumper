@@ -105,7 +105,7 @@ Material:
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 10
+    - _StencilVal: 5
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0
@@ -134,8 +134,8 @@ Material:
     - _EnvironmentReflections: 1
     - _FadeWithDiffuse: 1
     - _FadeWithShadow: 1
-    - _FresnelRange: 0.14
-    - _FresnelStrength: 0.47
+    - _FresnelRange: 0.37
+    - _FresnelStrength: 0.4
     - _GBuffer: 0
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -149,9 +149,9 @@ Material:
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 5
-    - _OuterWidth: 7
-    - _OuterZOffset: 2.3
+    - _OuterStencilComp: 6
+    - _OuterWidth: 10
+    - _OuterZOffset: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
@@ -177,13 +177,13 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 0.024258733, g: 0.024258733, b: 0.024258733, a: 1}
+    - _Color: {r: 0.01, g: 0.01, b: 0.01, a: 1}
     - _DiffuseColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FresnelColor: {r: 0.55795145, g: 0.55795145, b: 0.55795145, a: 1}
     - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
-    - _OuterOutlineColor: {r: 0, g: 3.8212852, b: 8, a: 1}
+    - _OuterOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RotateNormal: {r: 0, g: 0, b: 0, a: 1}
     - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.3}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
@@ -192,6 +192,7 @@ Material:
     - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
     - _UVScale: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &3381050475614923704
 MonoBehaviour:
   m_ObjectHideFlags: 11

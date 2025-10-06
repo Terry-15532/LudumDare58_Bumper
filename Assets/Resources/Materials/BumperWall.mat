@@ -89,7 +89,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints:
     - _CastShadow: 1
-    - _DiffuseSteps: 5
+    - _DiffuseSteps: 6
     - _NormalDebug: 0
     - _ObjectSpaceNormalMap: 0
     - _OverrideBias: 0
@@ -123,10 +123,10 @@ Material:
     - _DepthTexture: 0
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DiffuseHardness: 1
-    - _DiffuseOffset: 4.67
-    - _DiffuseRange: 1.84
-    - _DiffuseStrength: 6.72
+    - _DiffuseHardness: 0.718
+    - _DiffuseOffset: 3.41
+    - _DiffuseRange: 2.55
+    - _DiffuseStrength: 2.86
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _Emission: 1
@@ -142,7 +142,7 @@ Material:
     - _InnerStencilComp: 3
     - _InnerWidth: 0
     - _InnerZOffset: 0
-    - _LightEffect: 1
+    - _LightEffect: 0.5
     - _LightEffectOnOutline: 1
     - _Metallic: 0
     - _NormalBias: 0
@@ -160,10 +160,10 @@ Material:
     - _ShadowOffset: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
-    - _SpecularHardness: 1
+    - _SpecularHardness: 0
     - _SpecularHighlights: 1
     - _SpecularOffset: 0
-    - _SpecularRange: 0.283
+    - _SpecularRange: 0.462
     - _SpecularThreshold: 0.36
     - _SpotDensity: 3
     - _SpotOffset: -0.15
@@ -176,10 +176,10 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Color: {r: 1, g: 0.075999975, b: 0.075999975, a: 1}
-    - _DiffuseColor: {r: 1, g: 0.042918455, b: 0, a: 1}
+    - _Color: {r: 0.53, g: 0.059890017, b: 0.059890017, a: 1}
+    - _DiffuseColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FresnelColor: {r: 1, g: 0.2574123, b: 0.2574123, a: 1}
+    - _FresnelColor: {r: 0, g: 0, b: 0, a: 1}
     - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
     - _OuterOutlineColor: {r: 0, g: 0, b: 0, a: 1}
@@ -191,6 +191,7 @@ Material:
     - _SpotSpeed: {r: 0, g: 0, b: 0, a: 0}
     - _UVScale: {r: 1, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &3381050475614923704
 MonoBehaviour:
   m_ObjectHideFlags: 11
