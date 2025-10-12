@@ -24,6 +24,7 @@ public class Sound : MonoBehaviour {
     public void PlaySound(AudioClip clip, float delay = 0, bool loop = false) {
         audioSource.clip = clip;
         audioSource.loop = loop;
+        audioSource.playOnAwake = true;
         if (delay > 0)
             CallDelayedAsync(() => audioSource.Play(), delay);
         else audioSource.Play();

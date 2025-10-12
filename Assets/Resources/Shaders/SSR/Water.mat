@@ -92,7 +92,7 @@ Material:
     m_Ints:
     - _BinarySteps: 10
     - _FlipY: 0
-    - _MaxSteps: 200
+    - _MaxSteps: 70
     - _Noise: 0
     - _TraceSteps: 300
     m_Floats:
@@ -123,7 +123,7 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _JitterStrength: 0
+    - _JitterStrength: 0.5
     - _MaxDistance: 100
     - _Metallic: 0
     - _NoiseScale: 0.02
@@ -136,7 +136,7 @@ Material:
     - _RayStep: 0.1
     - _ReceiveShadows: 1
     - _ReflectionIntensity: 1
-    - _ReflectionStrength: 1
+    - _ReflectionStrength: 0.742
     - _SampleGI: 0
     - _Smoothness: 1
     - _SmoothnessTextureChannel: 0
@@ -145,7 +145,7 @@ Material:
     - _SpecularStrength: 0
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
-    - _StepLength: 0.005
+    - _StepLength: 0.01
     - _StepSize: 0.1
     - _Surface: 0
     - _Thickness: 48.24

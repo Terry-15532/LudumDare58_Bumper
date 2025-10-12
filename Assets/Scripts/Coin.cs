@@ -9,13 +9,16 @@ public class Coin : MonoBehaviour{
     }
 
     public void ChangePosition(){
+        SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
         var vfx = Resources.Load<GameObject>("Prefabs/CoinVFX");
         vfx = Instantiate(vfx, transform.position, Quaternion.identity);
         gameObject.SetActive(false);
-        transform.position = new Vector3(Tools.RandomNum(-9, 10), transform.position.y, Tools.RandomNum(-6, 7));
         Tools.CallDelayed(() => {
-            gameObject.SetActive(true);
-            Destroy(vfx.gameObject);
+            if (Game.instance.matchStarted){
+                transform.position = new Vector3(Tools.RandomNum(-10, 10), transform.position.y, Tools.RandomNum(-6, 6));
+                gameObject.SetActive(true);
+                Destroy(vfx.gameObject);
+            }
         }, 0.5f);
     }
 

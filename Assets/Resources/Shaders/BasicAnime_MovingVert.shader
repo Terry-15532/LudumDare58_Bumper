@@ -127,7 +127,7 @@ Shader "Custom/BasicAnimeWithVertMove"
             #pragma shader_feature _CAST_SHADOW
             #pragma shader_feature _OVERRIDE_BIAS
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            // #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
             #pragma vertex CustomShadowVertex
             #pragma fragment ShadowPassFragment
@@ -171,49 +171,49 @@ Shader "Custom/BasicAnimeWithVertMove"
             ENDHLSL
         }
 
-        Pass
-        {
-            Name "DepthNormalsPass"
-            Tags
-            {
-                "LightMode" = "DepthNormals"
-            }
-
-            ZWrite On
-            ColorMask 0
-
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-            };
-
-            struct Varyings
-            {
-                float4 positionHCS : SV_POSITION;
-                float3 normalWS : TEXCOORD0;
-            };
-
-            Varyings vert(Attributes input)
-            {
-                Varyings output;
-                output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
-                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
-                return output;
-            }
-
-            float4 frag(Varyings input) : SV_TARGET
-            {
-                float3 normalWS = normalize(input.normalWS);
-                return float4(normalWS * 0.5 + 0.5, 1.0); // Encode normal to [0,1]
-            }
-            ENDHLSL
-        }
+//        Pass
+//        {
+//            Name "DepthNormalsPass"
+//            Tags
+//            {
+//                "LightMode" = "DepthNormals"
+//            }
+//
+//            ZWrite On
+//            ColorMask 0
+//
+//            HLSLPROGRAM
+//            #pragma vertex vert
+//            #pragma fragment frag
+//            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+//
+//            struct Attributes
+//            {
+//                float4 positionOS : POSITION;
+//                float3 normalOS : NORMAL;
+//            };
+//
+//            struct Varyings
+//            {
+//                float4 positionHCS : SV_POSITION;
+//                float3 normalWS : TEXCOORD0;
+//            };
+//
+//            Varyings vert(Attributes input)
+//            {
+//                Varyings output;
+//                output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
+//                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+//                return output;
+//            }
+//
+//            float4 frag(Varyings input) : SV_TARGET
+//            {
+//                float3 normalWS = normalize(input.normalWS);
+//                return float4(normalWS * 0.5 + 0.5, 1.0); // Encode normal to [0,1]
+//            }
+//            ENDHLSL
+//        }
 
         Pass
         {
@@ -221,8 +221,8 @@ Shader "Custom/BasicAnimeWithVertMove"
 
             Tags
             {
-                "LightMode" = "UniversalGBuffer"
-                "LightMode" = "UniversalForwardBase"
+//                "LightMode" = "UniversalGBuffer"
+                "LightMode" = "UniversalForward"
                 "Queue" = "Geometry"
             }
 
@@ -246,24 +246,25 @@ Shader "Custom/BasicAnimeWithVertMove"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Assets/Resources/Shaders/Common/CommonShaderMethods.hlsl"
 
-            #pragma multi_compile  _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-            // #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
-            #pragma multi_compile_fragment _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile _ _ADDITIONAL_LIGHTS
-            #define ADDITIONAL_LIGHT_CALCULATE_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
-            #pragma multi_compile _SHADOWS_SOFT
-            #pragma shader_feature _SHOW_SPOTS
-            #pragma shader_feature _RCV_SHADOW
-            #pragma shader_feature _SHOW_FRESNEL
-            #pragma shader_feature _SHOW_SPECULAR
-            #pragma shader_feature _USE_NORMAL_MAP
-            #pragma shader_feature _UNPACK_NORMAL
-            #pragma shader_feature _PER_VERTEX_NORMAL
-            #pragma shader_feature _SMOOTH_NORMAL_DIFFUSE
-            #pragma shader_feature _SMOOTH_NORMAL_SPECULAR
-            #pragma shader_feature _SMOOTH_NORMAL_SHADOW
-            #pragma shader_feature _G_BUFFER _DEPTH_TEXTURE _
+            #pragma multi_compile_fog
+            
+            #pragma shader_feature_local _SHOW_SPOTS
+            #pragma shader_feature_local _RCV_SHADOW
+            #pragma shader_feature_local _SHOW_FRESNEL
+            #pragma shader_feature_local _SHOW_SPECULAR
+            #pragma shader_feature_local _USE_NORMAL_MAP
+            #pragma shader_feature_local _UNPACK_NORMAL
+            #pragma shader_feature_local _PER_VERTEX_NORMAL
+            #pragma shader_feature_local _SMOOTH_NORMAL_DIFFUSE
+            #pragma shader_feature_local _SMOOTH_NORMAL_SPECULAR
+            #pragma shader_feature_local _SMOOTH_NORMAL_SHADOW
+            #pragma shader_feature_local _G_BUFFER
+            #pragma shader_feature_local _DEPTH_TEXTURE
 
 
             float3 _Color;

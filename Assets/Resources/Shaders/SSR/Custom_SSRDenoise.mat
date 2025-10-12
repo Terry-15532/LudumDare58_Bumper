@@ -25,9 +25,9 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _AlphaThreshold: 0.297
-    - _BlurSize: 5
-    - _DepthThreshold: 0.47
+    - _AlphaThreshold: 0
+    - _BlurSize: 1
+    - _DepthThreshold: 1
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -15,13 +15,19 @@ public class Wall : MonoBehaviour{
         mr = GetComponent<MeshRenderer>();
         startPos = transform.position;
         startRot = transform.rotation;
+        Game.instance.walls.Add(this);
     }
-    
+
     public void Reset(){
+        //     var rb = GetComponent<Rigidbody>();
+        //     if (rb){
+        //         rb.isKinematic = true;
+        //         Tools.CallDelayed(() => rb.isKinematic = false, 1f);
+        //     }
         transform.position = startPos;
         transform.rotation = startRot;
         mr.materials[0].SetVector(outerColorIndex, Vector4.zero);
-        
+
     }
 
     public void Update(){

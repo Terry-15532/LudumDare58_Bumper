@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: ScreenEffect 1
   m_Shader: {fileID: 4800000, guid: 8d52e9bc4bb683e4ea12873e27be7661, type: 3}
-  m_Parent: {fileID: 0}
+  m_Parent: {fileID: 2100000, guid: 9ae32d9b6a361144980ad5de25536460, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
@@ -22,30 +22,14 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 8400000, guid: 343a460a31d6ee24d945f06b32ce9b4f, type: 2}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _AberrationStrength: 0.0111
-    - _BarrelAnimSpeed: 10
-    - _BarrelDistortion: 0.5
     - _CRTIntensity: 1
     - _CRTSpeed: 0.1
-    - _ColorOffset: 0.00617
-    - _Curvature: 0.124
     - _Emission: 1.5
-    - _GlitchIntensity: 0.2
-    - _GlitchSpeed: 0.1
     - _ScanlineFrequency: 1000
     - _ScanlineIntensity: 0.5
-    - _ScanlineSpeed: 0.05
-    - _Stencil: 0
-    - _VignetteIntensity: 0
-    - _VignetteRange: 0.595
-    - _VignetteStrength: 0.766
     m_Colors:
     - _Color: {r: 1, g: 0.85040426, b: 0.85040426, a: 1}
     - _TextureSpeed: {r: 0, g: 0, b: 0, a: 0}

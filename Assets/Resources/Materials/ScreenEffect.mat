@@ -39,7 +39,7 @@ Material:
     - _Emission: 1
     - _GlitchIntensity: 0.2
     - _GlitchSpeed: 0.1
-    - _ScanlineFrequency: 689
+    - _ScanlineFrequency: 400
     - _ScanlineIntensity: 0.878
     - _ScanlineSpeed: 0.05
     - _Stencil: 0
@@ -47,7 +47,7 @@ Material:
     - _VignetteRange: 0.595
     - _VignetteStrength: 0.766
     m_Colors:
-    - _Color: {r: 1, g: 0.9690026, b: 0.9690026, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _TextureSpeed: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -162,8 +162,9 @@ Shader "Custom/SSRDenoise"
                         sampleUV.x = clamp(sampleUV.x, 0.001, 0.999);
 
                         float4 sampleColor = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, sampleUV);
+                        float depth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, sampleUV);
 
-                        depthVariation += abs(centerDepth - SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, sampleUV));
+                        depthVariation += abs(centerDepth - depth);
                         sampleColor.rgb *= sampleColor.a;
 
                         alphaVariation += abs(centerAlpha - step(0.0000001, sampleColor.a));

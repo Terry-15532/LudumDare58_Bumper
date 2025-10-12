@@ -32,7 +32,7 @@ public class PlayerController : MonoBehaviour{
     public KeyCode[] keys = new KeyCode[5]; //up, down, left, right, skill
 
 
-    public static Vector3 blueBirthPoint = new Vector3(12, 1.7f, 0), redBirthPoint = new Vector3(-9.5f, 1.5f, 0);
+    public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
     public static KeyCode[] blueKeys ={ KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Q };
     public static KeyCode[] redKeys ={ KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Space };
@@ -57,6 +57,7 @@ public class PlayerController : MonoBehaviour{
         }
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        transform.rotation = Quaternion.Euler(0, side == PlayerSide.Blue ? 90f : -90f, 0);
     }
 
     public void Awake(){
@@ -91,7 +92,7 @@ public class PlayerController : MonoBehaviour{
         if (smokeCoroutine != null){
             StopCoroutine(smokeCoroutine);
         }
-        smokeCoroutine = StartCoroutine(SmoothIntensity(targetIntensity, duration));
+        smokeCoroutine = Tools.callDelayedHelper.StartCoroutine(SmoothIntensity(targetIntensity, duration));
 
     }
 
@@ -113,6 +114,11 @@ public class PlayerController : MonoBehaviour{
 
     Vector3 direction = Vector3.zero;
 
+    // AI decision delay variables
+    public float aiDecisionInterval = 0.3f; // seconds between decisions
+    private float aiDecisionTimer = 0f;
+    private Vector3 aiLastDirection = Vector3.zero;
+
     void FixedUpdate(){
         if (Game.instance.matchRunning == false){
             rb.linearVelocity = Vector3.zero;
@@ -120,7 +126,6 @@ public class PlayerController : MonoBehaviour{
             return;
         }
         else{
-
             CalculateAcc();
             UpdateHeadAnimation();
             direction = Vector3.zero;
@@ -137,9 +142,9 @@ public class PlayerController : MonoBehaviour{
                 if (Input.GetKey(keys[3])){
                     direction -= Vector3.right;
                 }
-                if (Input.GetKey(keys[4])){
-                    UseSkill();
-                }
+                // if (Input.GetKey(keys[4])){
+                //     UseSkill();
+                // }
                 if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0){
                     direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
                 }
@@ -147,20 +152,67 @@ public class PlayerController : MonoBehaviour{
             }
 
             else if (device == PlayerControlDevice.AI){
-                // AI logic here
+                aiDecisionTimer -= Time.fixedDeltaTime;
+                if (aiDecisionTimer <= 0f){
+                    aiDecisionTimer = aiDecisionInterval;
+                    // AI logic: chase coin, avoid map edge, avoid enemy
+                    GameObject coinObj = Game.instance.coin;
+                    GameObject enemyObj = (side == PlayerSide.Blue) ? Game.instance.playerRed.gameObject : Game.instance.playerBlue.gameObject;
+                    Vector3 coinPos = coinObj.transform.position;
+                    Vector3 enemyPos = enemyObj.transform.position;
+                    Vector3 myPos = player.transform.position;
+
+                    // Move towards coin
+                    Vector3 toCoin = (coinPos - myPos);
+                    toCoin.y = 0; // ignore vertical for movement
+                    Vector3 moveDir = toCoin.normalized;
+
+                    // Avoid map edge
+                    float safeX = Mathf.Clamp(myPos.x, -9.5f, 9.5f);
+                    float safeY = Mathf.Clamp(myPos.y, -5.5f, 5.5f);
+                    Vector3 safePos = new Vector3(safeX, safeY, myPos.z);
+                    Vector3 awayFromEdge = (safePos - myPos) * 2f; // steer back in if near edge
+
+                    // Avoid enemy if close and between AI and coin
+                    float enemyDist = Vector3.Distance(myPos, enemyPos);
+                    float coinDist = Vector3.Distance(myPos, coinPos);
+                    Vector3 toEnemy = (enemyPos - myPos);
+                    toEnemy.y = 0;
+                    bool enemyBlocking = (Vector3.Dot(toCoin.normalized, toEnemy.normalized) > 0.7f) && (enemyDist < coinDist) && (enemyDist < 4f);
+                    Vector3 avoidEnemy = Vector3.zero;
+                    if (enemyBlocking){
+                        // sidestep perpendicular to enemy direction
+                        avoidEnemy = Vector3.Cross(toEnemy.normalized, Vector3.up) * 2f;
+                    }
+
+                    aiLastDirection = (moveDir + awayFromEdge + avoidEnemy).normalized;
+                }
+                direction = aiLastDirection;
+                if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0){
+                    direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
+                }
+                rb.AddForce(direction * acc, ForceMode.Acceleration);
             }
         }
     }
 
-    public void UseSkill(){
-        rb.linearVelocity = direction.normalized * 30f;
-        rb.angularVelocity = Vector3.zero;
-    }
+    // public void UseSkill(){
+    //     rb.linearVelocity = direction.normalized * 30f;
+    //     rb.angularVelocity = Vector3.zero;
+    // }
 
     public void OnTriggerEnter(Collider other){
         if (other.gameObject.CompareTag("DeathZone")){
+            Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
+            gameObject.SetActive(false);
             ResetPosition();
-            Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 3);
+            Tools.CallDelayed(() => {
+                gameObject.SetActive(true);
+            }, 1f);
+            SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
+            // Tools.CallDelayed(() => {
+            //     gameObject.SetActive(true);
+            // }, 0.3f);
         }
         else if (other.gameObject.name == "Coin"){
             other.gameObject.GetComponent<Coin>().ChangePosition();
@@ -176,7 +228,10 @@ public class PlayerController : MonoBehaviour{
         }
         if (collision.gameObject.CompareTag("Wall")){
             Wall wall = collision.gameObject.GetComponent<Wall>();
-            wall.SetOutlineBlink(side);
+            if (wall == null){
+                wall = collision.gameObject.GetComponentInParent<Wall>();
+            }
+            wall?.SetOutlineBlink(side);
         }
     }
 

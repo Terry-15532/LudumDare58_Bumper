@@ -118,7 +118,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
-    - _CullMode: 3
+    - _CullMode: 2
     - _Cutoff: 0.5
     - _DepthBias: 0
     - _DepthTexture: 0

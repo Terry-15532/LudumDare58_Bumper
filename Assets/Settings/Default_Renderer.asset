@@ -73,14 +73,13 @@ MonoBehaviour:
   m_Active: 1
   settings:
     passTag: RenderObjects
-    Event: 250
+    Event: 300
     filterSettings:
       RenderQueueType: 0
       LayerMask:
         serializedVersion: 2
         m_Bits: 4294967295
       PassNames:
-      - UniversalForwardBase
       - InnerOutline
       - OuterOutline
     overrideMaterial: {fileID: 0}
@@ -88,7 +87,7 @@ MonoBehaviour:
     overrideShader: {fileID: 0}
     overrideShaderPassIndex: 0
     overrideMode: 0
-    overrideDepthState: 1
+    overrideDepthState: 0
     depthCompareFunction: 4
     enableWrite: 1
     stencilSettings:
@@ -119,7 +118,7 @@ MonoBehaviour:
   injectionPoint: 500
   denoiseMaterial: {fileID: 2100000, guid: 8b97abc022ac47041b65bff406645fab, type: 2}
   blitMaterial: {fileID: 2100000, guid: 5cee451bdf15fe14fbe79b9e700069d7, type: 2}
-  denoiseIterations: 3
-  alpha: 0.651
+  denoiseIterations: 0
+  alpha: 1
   shaderTags:
   - SSRBase

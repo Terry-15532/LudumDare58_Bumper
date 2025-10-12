@@ -105,7 +105,7 @@ Material:
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 5
+    - _StencilVal: 7
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0
@@ -118,7 +118,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
-    - _CullMode: 3
+    - _CullMode: 2
     - _Cutoff: 0.5
     - _DepthBias: 0
     - _DepthTexture: 0
