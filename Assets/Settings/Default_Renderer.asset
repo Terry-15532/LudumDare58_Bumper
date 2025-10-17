@@ -80,7 +80,6 @@ MonoBehaviour:
         serializedVersion: 2
         m_Bits: 4294967295
       PassNames:
-      - InnerOutline
       - OuterOutline
     overrideMaterial: {fileID: 0}
     overrideMaterialPassIndex: 0

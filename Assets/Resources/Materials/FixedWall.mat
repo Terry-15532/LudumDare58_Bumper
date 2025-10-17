@@ -141,7 +141,7 @@ Material:
     - _GlossyReflections: 0
     - _InnerStencilComp: 3
     - _InnerWidth: 5
-    - _InnerZOffset: 10
+    - _InnerZOffset: 0
     - _LightEffect: 0.5
     - _LightEffectOnOutline: 1
     - _Metallic: 0
@@ -150,7 +150,7 @@ Material:
     - _OcclusionStrength: 1
     - _OuterStencilComp: 8
     - _OuterWidth: 5
-    - _OuterZOffset: 10
+    - _OuterZOffset: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1

@@ -14,7 +14,6 @@ Material:
   m_ValidKeywords:
   - _CAST_SHADOW
   - _RCV_SHADOW
-  - _SHOW_OUTLINE_INNER
   - _SHOW_OUTLINE_OUTER
   - _SHOW_SPECULAR
   m_InvalidKeywords: []
@@ -98,14 +97,14 @@ Material:
     - _RcvShadow: 1
     - _ShadowSteps: 3
     - _ShowFresnel: 0
-    - _ShowInnerOutline: 1
+    - _ShowInnerOutline: 0
     - _ShowOuterOutline: 1
     - _ShowSpecular: 1
     - _ShowSpot: 0
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 4
+    - _StencilVal: 3
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0
@@ -149,8 +148,8 @@ Material:
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 6
-    - _OuterWidth: 7
+    - _OuterStencilComp: 8
+    - _OuterWidth: 8
     - _OuterZOffset: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
