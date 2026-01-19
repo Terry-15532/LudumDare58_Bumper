@@ -4,7 +4,7 @@ Shader "Custom/SmokeBlue"
     {
         _MainTex ("MainTex", 2D) = "white" {}
         _Color ("Color", Color) = (1,1,1,1)
-//        _BlueSmokeStrength ("SmokeStrength", Range(0, 1)) = 1
+        //        _BlueSmokeStrength ("SmokeStrength", Range(0, 1)) = 1
         _Speed ("Speed", Vector) = (0,0,0,0)
         _Scale("Scale", Vector) = (0,0,0,0)
         _FresnelPower("Fresnel Power", Float) = 3
@@ -90,8 +90,8 @@ Shader "Custom/SmokeBlue"
                 float glit = clamp(GradientNoise(i.uv * _Scale + objPos.x + objPos.z + _Time * _Speed / -15, 1.5), 0.1, 1);
 
                 float fresnel = pow(1.0 - saturate(dot(normalize(i.worldPos - _WorldSpaceCameraPos), normalize(i.normal))), _FresnelPower);
-                float3 color = (_Color) * (_BlueSmokeStrength) * _Color;
-                return float4(color.rgb, saturate(pow(1 - i.uv.y, 5) * glit * saturate(1 - fresnel * _FresnelIntensity))) * i.color;
+                float3 color = (_Color) * _Color;
+                return float4(color.rgb, _BlueSmokeStrength * saturate(pow(1 - i.uv.y, 5) * glit * saturate(1 - fresnel * _FresnelIntensity))) * i.color;
             }
             ENDHLSL
         }

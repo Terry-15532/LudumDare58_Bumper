@@ -115,7 +115,7 @@ MonoBehaviour:
   active: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 0.1
+    m_Value: 0.169
 --- !u!114 &-454289528054805759
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -131,7 +131,7 @@ MonoBehaviour:
   active: 0
   intensity:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 2.11
   tintColor:
     m_OverrideState: 1
     m_Value: {r: 0, g: 0.77179575, b: 1, a: 1}
