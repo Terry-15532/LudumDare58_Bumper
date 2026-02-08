@@ -5,20 +5,21 @@ using System.Linq;
 using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 
-public enum BlinkSide{
+public enum BlinkSide {
     Left,
     Right,
     Fullscreen
 }
 
-public class Game : MonoBehaviour{
+public class Game : MonoBehaviour {
 
     private static Game _instance;
 
-    public static Game instance{
-        get{
+    public static Game instance {
+        get {
             return _instance;
         }
     }
@@ -44,7 +45,7 @@ public class Game : MonoBehaviour{
     // }
 
     public void Awake(){
-        if (_instance != null && _instance != this){
+        if (_instance != null && _instance != this) {
             Destroy(this.gameObject);
             return;
         }
@@ -52,15 +53,15 @@ public class Game : MonoBehaviour{
     }
 
     public void BlinkScreen(BlinkSide side){
-        if (side == BlinkSide.Left){
+        if (side == BlinkSide.Left) {
             leftBlink.SetActive(true);
             Tools.CallDelayed(() => leftBlink.SetActive(false), 0.1f);
         }
-        else if (side == BlinkSide.Right){
+        else if (side == BlinkSide.Right) {
             rightBlink.SetActive(true);
             Tools.CallDelayed(() => rightBlink.SetActive(false), 0.1f);
         }
-        else{
+        else {
             fullscreenBlink.SetActive(true);
             Tools.CallDelayed(() => fullscreenBlink.SetActive(false), 0.1f);
         }
@@ -95,24 +96,24 @@ public class Game : MonoBehaviour{
 
     private IEnumerator TimerCoroutine(){
         timer = maxTime;
-        while (true){
-            try{
-                if (matchRunning){
+        while (true) {
+            try {
+                if (matchRunning) {
                     timer -= 1f;
-                    if (timer < 0){
+                    if (timer < 0) {
                         timer = 0;
                         EndMatch();
                     }
-                    if (timer < 10){
+                    if (timer < 10) {
                         timerText.color = new Color(1f, 0.2f, 0.2f);
                     }
-                    else{
+                    else {
                         timerText.color = Color.white;
                     }
                     // if (timer is < 4 and >= 3){
                     //     SoundSys.PlaySound("Countdown", volume: 1f).audioSource.volume = 1f;
                     // }
-                    if (timer < 5){
+                    if (timer < 5) {
                         BlinkScreen(BlinkSide.Fullscreen);
                     }
                     int minutes = Mathf.FloorToInt(timer / 60);
@@ -121,7 +122,7 @@ public class Game : MonoBehaviour{
                 }
                 yield return new WaitForSeconds(1f);
             }
-            finally{ }
+            finally { }
         }
     }
 
@@ -138,21 +139,22 @@ public class Game : MonoBehaviour{
         matchStarted = true;
         mainVirtualCamera.Follow = playerCombinedTarget.transform;
 
-        SoundSys.PlaySound("Countdown", volume: 1f).audioSource.volume = 1;
+        SoundSys.PlaySound("Countdown", volume: 0.3f).audioSource.volume = 0.3f;
 
-        for (int i = 3; i >= 0; i--){
+        for (int i = 3; i >= 0; i--) {
             // walls.ForEach(w => w.gameObject.SetActive(false));
             int count = i;
             Tools.CallDelayed(() => {
-                if (count > 0){
+                if (count > 0) {
                     countdownText.text = count.ToString();
                 }
-                else{
+                else {
                     countdownText.text = "GO";
                     countdownText.color = new Color(0, 1f, 0.3f);
                     playerBlue.SetSmokeIntensitySmooth(2f, 0.1f);
                     playerRed.SetSmokeIntensitySmooth(2f, 0.1f);
                     SoundSys.PlaySound("Cheer", volume: 1f).audioSource.volume = 0.3f;
+
                 }
             }, 3 - i);
         }
@@ -174,14 +176,14 @@ public class Game : MonoBehaviour{
     }
 
     public void AddScore(PlayerSide side, int increment){
-        if (side == PlayerSide.Blue){
+        if (side == PlayerSide.Blue) {
             scores.x += increment;
             scoreTextBlue.text = scores.x.ToString();
             playerBlue.SetSmokeIntensitySmooth(1.2f, 0.2f);
             BlinkScreen(BlinkSide.Left);
             Tools.CallDelayed(() => playerBlue.SetSmokeIntensitySmooth(0f, 0.2f), 0.3f * increment);
         }
-        else{
+        else {
             scores.y += increment;
             scoreTextRed.text = scores.y.ToString();
             playerRed.SetSmokeIntensitySmooth(1.7f, 0.2f);
@@ -193,17 +195,17 @@ public class Game : MonoBehaviour{
     public void EndMatch(){
         SoundSys.PlaySound("Cheer", volume: 1f).audioSource.volume = 0.3f;
         mainVirtualCamera.Follow = cameraDefaultTarget.transform;
-        if (scores.x > scores.y){
+        if (scores.x > scores.y) {
             blueWinUI.SetActive(true);
             redWinUI.SetActive(false);
             drawUI.SetActive(false);
         }
-        else if (scores.y > scores.x){
+        else if (scores.y > scores.x) {
             blueWinUI.SetActive(false);
             redWinUI.SetActive(true);
             drawUI.SetActive(false);
         }
-        else{
+        else {
             drawUI.SetActive(true);
             blueWinUI.SetActive(false);
             redWinUI.SetActive(false);
@@ -252,15 +254,20 @@ public class Game : MonoBehaviour{
     public bool selectedSingleMode = false;
 
     public void Update(){
-        if (matchStarted){
-            if (Input.GetKeyDown(KeyCode.Escape)){
+        if (Input.GetKeyDown(KeyCode.R)) {
+            Reset();
+            StopAllCoroutines();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+        if (matchStarted) {
+            if (Input.GetKeyDown(KeyCode.Escape)) {
                 matchRunning = !matchRunning;
                 timerText.text = "PAUSED";
                 timerText.ForceMeshUpdate();
-                if (!matchRunning){
+                if (!matchRunning) {
                     Time.timeScale = 0;
                 }
-                else{
+                else {
                     Time.timeScale = 1;
                     int minutes = Mathf.FloorToInt(timer / 60);
                     int seconds = Mathf.FloorToInt(timer % 60);
@@ -268,31 +275,40 @@ public class Game : MonoBehaviour{
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.Q)){
-            if (selectedSingleMode){
+        else if (Input.GetKeyDown(KeyCode.Q)) {
+            if (selectedSingleMode) {
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.18f;
                 playerRed.Init();
                 StartMatch();
                 difficultyUI.SetActive(false);
             }
-            else{
+            else {
                 selectedSingleMode = true;
                 difficultyUI.SetActive(true);
             }
         }
-        else if (Input.GetKeyDown(KeyCode.E)){
-            if (selectedSingleMode){
+        else if (Input.GetKeyDown(KeyCode.E)) {
+            if (selectedSingleMode) {
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.05f;
                 playerRed.Init();
                 StartMatch();
             }
-            else{
+            else {
                 playerRed.device = PlayerControlDevice.Keyboard;
                 playerRed.Init();
                 StartMatch();
             }
+        }
+        else if (Input.GetKeyDown(KeyCode.F)) {
+            playerRed.device = PlayerControlDevice.AI;
+            playerRed.aiDecisionInterval = 0.01f;
+            playerRed.Init();
+            playerBlue.device = PlayerControlDevice.AI;
+            playerBlue.aiDecisionInterval = 0.01f;
+            playerBlue.Init();
+            StartMatch();
         }
     }
 

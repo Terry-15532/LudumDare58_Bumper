@@ -118,6 +118,6 @@ MonoBehaviour:
   denoiseMaterial: {fileID: 2100000, guid: 8b97abc022ac47041b65bff406645fab, type: 2}
   blitMaterial: {fileID: 2100000, guid: 5cee451bdf15fe14fbe79b9e700069d7, type: 2}
   denoiseIterations: 0
-  alpha: 1
+  alpha: 0.632
   shaderTags:
   - SSRBase

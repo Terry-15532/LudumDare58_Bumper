@@ -2,6 +2,7 @@
 
 public class Coin : MonoBehaviour{
     public float rotateSpeed = 1f;
+    public float startY = 2.5f, amplitude = 0.15f;
 
     public void Update(){
         transform.Rotate(Vector3.up, rotateSpeed, Space.World);

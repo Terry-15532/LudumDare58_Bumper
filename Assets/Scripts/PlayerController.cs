@@ -5,18 +5,18 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public enum PlayerControlDevice{
+public enum PlayerControlDevice {
     Keyboard,
     Joystick,
     AI
 }
 
-public enum PlayerSide{
+public enum PlayerSide {
     Blue,
     Red
 }
 
-public class PlayerController : MonoBehaviour{
+public class PlayerController : MonoBehaviour {
 
     public GameObject player, head;
 
@@ -29,13 +29,19 @@ public class PlayerController : MonoBehaviour{
     public Rigidbody rb;
     public MeshRenderer mr;
 
-    public KeyCode[] keys = new KeyCode[5]; //up, down, left, right, skill
+    public GameObject BombPrefab;
+
+    public KeyCode[] keys = new KeyCode[5];//up, down, left, right, skill
 
 
     public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
-    public static KeyCode[] blueKeys ={ KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Q };
-    public static KeyCode[] redKeys ={ KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Space };
+    public static KeyCode[] blueKeys = {
+        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space
+    };
+    public static KeyCode[] redKeys = {
+        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return
+    };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
 
@@ -49,10 +55,10 @@ public class PlayerController : MonoBehaviour{
     // }
 
     public void ResetPosition(){
-        if (side == PlayerSide.Blue){
+        if (side == PlayerSide.Blue) {
             player.transform.position = blueBirthPoint;
         }
-        else{
+        else {
             player.transform.position = redBirthPoint;
         }
         rb.linearVelocity = Vector3.zero;
@@ -89,7 +95,7 @@ public class PlayerController : MonoBehaviour{
     Coroutine smokeCoroutine;
 
     public void SetSmokeIntensitySmooth(float targetIntensity, float duration){
-        if (smokeCoroutine != null){
+        if (smokeCoroutine != null) {
             StopCoroutine(smokeCoroutine);
         }
         smokeCoroutine = Tools.callDelayedHelper.StartCoroutine(SmoothIntensity(targetIntensity, duration));
@@ -101,7 +107,7 @@ public class PlayerController : MonoBehaviour{
         float initialIntensity = Shader.GetGlobalFloat(id);
         float elapsed = 0f;
         var interval = new WaitForEndOfFrame();
-        while (elapsed < duration){
+        while (elapsed < duration) {
             elapsed += Time.deltaTime;
             float newIntensity = Mathf.Lerp(initialIntensity, targetIntensity, elapsed / duration);
             Shader.SetGlobalFloat(id, newIntensity);
@@ -114,46 +120,60 @@ public class PlayerController : MonoBehaviour{
 
     Vector3 direction = Vector3.zero;
 
+    public bool bombPlaced = false;
+
     // AI decision delay variables
-    public float aiDecisionInterval = 0.3f; // seconds between decisions
+    public float aiDecisionInterval = 0.3f;// seconds between decisions
     private float aiDecisionTimer = 0f;
     private Vector3 aiLastDirection = Vector3.zero;
 
+    // AI bomb placement variables
+    public float aiBombDecisionInterval = 0.5f;// check bomb placement less frequently
+    private float aiBombDecisionTimer = 0f;
+
+    void Update(){
+        if (device == PlayerControlDevice.Keyboard) {
+            direction = Vector3.zero;
+            if (Input.GetKey(keys[0])) {
+                direction -= Vector3.forward;
+            }
+            if (Input.GetKey(keys[1])) {
+                direction -= Vector3.back;
+            }
+            if (Input.GetKey(keys[2])) {
+                direction -= Vector3.left;
+            }
+            if (Input.GetKey(keys[3])) {
+                direction -= Vector3.right;
+            }
+            if (!bombPlaced && Input.GetKeyDown(keys[4]) && Game.instance.matchRunning) {
+                Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+                bombPlaced = true;
+            }
+            if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
+                direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
+            }
+        }
+    }
+
     void FixedUpdate(){
-        if (Game.instance.matchRunning == false){
+        if (!Game.instance.matchRunning) {
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
             return;
         }
-        else{
+        else {
             CalculateAcc();
             UpdateHeadAnimation();
-            direction = Vector3.zero;
-            if (device == PlayerControlDevice.Keyboard){
-                if (Input.GetKey(keys[0])){
-                    direction -= Vector3.forward;
-                }
-                if (Input.GetKey(keys[1])){
-                    direction -= Vector3.back;
-                }
-                if (Input.GetKey(keys[2])){
-                    direction -= Vector3.left;
-                }
-                if (Input.GetKey(keys[3])){
-                    direction -= Vector3.right;
-                }
-                // if (Input.GetKey(keys[4])){
-                //     UseSkill();
-                // }
-                if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0){
-                    direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
-                }
+
+            if (device == PlayerControlDevice.Keyboard) {
                 rb.AddForce(direction.normalized * acc, ForceMode.Acceleration);
             }
+            else if (device == PlayerControlDevice.AI) {
+                direction = Vector3.zero;
 
-            else if (device == PlayerControlDevice.AI){
                 aiDecisionTimer -= Time.fixedDeltaTime;
-                if (aiDecisionTimer <= 0f){
+                if (aiDecisionTimer <= 0f) {
                     aiDecisionTimer = aiDecisionInterval;
                     // AI logic: chase coin, avoid map edge, avoid enemy
                     GameObject coinObj = Game.instance.coin;
@@ -164,14 +184,14 @@ public class PlayerController : MonoBehaviour{
 
                     // Move towards coin
                     Vector3 toCoin = (coinPos - myPos);
-                    toCoin.y = 0; // ignore vertical for movement
+                    toCoin.y = 0;// ignore vertical for movement
                     Vector3 moveDir = toCoin.normalized;
 
                     // Avoid map edge
                     float safeX = Mathf.Clamp(myPos.x, -9.5f, 9.5f);
                     float safeY = Mathf.Clamp(myPos.y, -5.5f, 5.5f);
                     Vector3 safePos = new Vector3(safeX, safeY, myPos.z);
-                    Vector3 awayFromEdge = (safePos - myPos) * 2f; // steer back in if near edge
+                    Vector3 awayFromEdge = (safePos - myPos) * 2f;// steer back in if near edge
 
                     // Avoid enemy if close and between AI and coin
                     float enemyDist = Vector3.Distance(myPos, enemyPos);
@@ -180,18 +200,50 @@ public class PlayerController : MonoBehaviour{
                     toEnemy.y = 0;
                     bool enemyBlocking = (Vector3.Dot(toCoin.normalized, toEnemy.normalized) > 0.7f) && (enemyDist < coinDist) && (enemyDist < 4f);
                     Vector3 avoidEnemy = Vector3.zero;
-                    if (enemyBlocking){
+                    if (enemyBlocking) {
                         // sidestep perpendicular to enemy direction
                         avoidEnemy = Vector3.Cross(toEnemy.normalized, Vector3.up) * 2f;
                     }
 
                     aiLastDirection = (moveDir + awayFromEdge + avoidEnemy).normalized;
                 }
+
+                // AI bomb placement logic
+                aiBombDecisionTimer -= Time.fixedDeltaTime;
+                if (!bombPlaced && aiBombDecisionTimer <= 0f) {
+                    aiBombDecisionTimer = aiBombDecisionInterval;
+
+                    GameObject enemyObj = (side == PlayerSide.Blue) ? Game.instance.playerRed.gameObject : Game.instance.playerBlue.gameObject;
+                    Vector3 enemyPos = enemyObj.transform.position;
+                    Vector3 myPos = player.transform.position;
+
+                    float enemyDist = Vector3.Distance(myPos, enemyPos);
+
+                    // Place bomb when enemy is at optimal distance (1.5-3.5 units away)
+                    // With 0.3s flicker + 0.5s explosion, need closer range for effective push
+                    if (enemyDist >= 1.5f && enemyDist <= 7.5f) {
+                        // Check if enemy is moving towards us or stationary
+                        PlayerController enemy = enemyObj.GetComponent<PlayerController>();
+                        Vector3 enemyVelocity = enemy.rb.linearVelocity;
+                        Vector3 toMe = (myPos - enemyPos);
+                        toMe.y = 0;
+
+                        // Place bomb if enemy is approaching or within good range
+                        bool enemyApproaching = Vector3.Dot(enemyVelocity.normalized, toMe.normalized) > 0.3f;
+                        bool goodPosition = enemyDist < 2.5f;// closer range = higher priority
+
+                        if (enemyApproaching || goodPosition) {
+                            Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+                            bombPlaced = true;
+                        }
+                    }
+                }
+
                 direction = aiLastDirection;
-                if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0){
+                if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                     direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
                 }
-                rb.AddForce(direction * acc, ForceMode.Acceleration);
+                rb.AddForce(direction.normalized * acc, ForceMode.Acceleration);
             }
         }
     }
@@ -202,33 +254,33 @@ public class PlayerController : MonoBehaviour{
     // }
 
     public void OnTriggerEnter(Collider other){
-        if (other.gameObject.CompareTag("DeathZone")){
+        if (other.gameObject.CompareTag("DeathZone")) {
             Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
             gameObject.SetActive(false);
             ResetPosition();
+            SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
             Tools.CallDelayed(() => {
                 gameObject.SetActive(true);
             }, 1f);
-            SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
             // Tools.CallDelayed(() => {
             //     gameObject.SetActive(true);
             // }, 0.3f);
         }
-        else if (other.gameObject.name == "Coin"){
+        else if (other.gameObject.name == "Coin") {
             other.gameObject.GetComponent<Coin>().ChangePosition();
             Game.instance.AddScore(side, 1);
         }
     }
 
     public void OnCollisionEnter(Collision collision){
-        if (!collision.gameObject.CompareTag("Floor")){
+        if (!collision.gameObject.CompareTag("Floor")) {
             mr.materials[0].SetVector(Wall.outerColorIndex, side == PlayerSide.Blue ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
             Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.1f);
             // CameraShake.Shake(player.transform, collision.GetContact(0).normal, 1f, 0.3f, 0.2f);
         }
-        if (collision.gameObject.CompareTag("Wall")){
+        if (collision.gameObject.CompareTag("Wall")) {
             Wall wall = collision.gameObject.GetComponent<Wall>();
-            if (wall == null){
+            if (wall == null) {
                 wall = collision.gameObject.GetComponentInParent<Wall>();
             }
             wall?.SetOutlineBlink(side);
