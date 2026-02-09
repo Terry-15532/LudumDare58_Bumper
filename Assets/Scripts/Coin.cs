@@ -5,7 +5,7 @@ public class Coin : MonoBehaviour{
     public float startY = 2.5f, amplitude = 0.15f;
 
     public void Update(){
-        transform.Rotate(Vector3.up, rotateSpeed, Space.World);
+        transform.Rotate(Vector3.up, rotateSpeed * Time.timeScale, Space.World);
         transform.position = new Vector3(transform.position.x, 2.5f + Mathf.Sin(Time.time * 2) * 0.15f, transform.position.z);
     }
 
