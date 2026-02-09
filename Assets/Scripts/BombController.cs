@@ -15,7 +15,7 @@ public class BombController : MonoBehaviour {
     }
 
     IEnumerator BombActions(){
-        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.8f;
+        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.9f;
         var mats = Bomb.materials;
         float t = 0;
         while (t < flickerDuration) {

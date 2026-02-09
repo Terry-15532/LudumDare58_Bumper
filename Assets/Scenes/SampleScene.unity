@@ -242,7 +242,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game
   scores: {x: 0, y: 0}
   timer: 0
-  maxTime: 120
+  maxTime: 90
   playerBlue: {fileID: 85688528}
   playerRed: {fileID: 8894761913051218849}
   scoreTextBlue: {fileID: 537039544}
@@ -611,7 +611,7 @@ MonoBehaviour:
   acceleration: {x: 0, y: 0, z: 0}
   bombPlaced: 0
   aiDecisionInterval: 0.2
-  aiBombDecisionInterval: 0.5
+  aiBombDecisionInterval: 0.05
 --- !u!4 &85688529
 Transform:
   m_ObjectHideFlags: 0
@@ -7473,13 +7473,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'R to Reset
-
-    WASD / Arrows to Move
-
-    Space / Enter to Place Bombs
-
-'
+  m_text: "R to Reset \nWASD / Arrows to Move\nSpace / Enter to Place Bombs\nF11
+    Toggle Fullscreen"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -7609,7 +7604,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1402839514}
   m_LocalRotation: {x: -0.48925567, y: 0.15332332, z: -0.2567436, w: 0.81927013}
-  m_LocalPosition: {x: 0, y: 0, z: 3366.7756}
+  m_LocalPosition: {x: 0, y: 0, z: 3178}
   m_LocalScale: {x: 122.428185, y: 122.42816, z: 122.42814}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -7617,7 +7612,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 12.083, y: 209.5, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 1556.76, y: 1842.5435}
+  m_AnchoredPosition: {x: 1556.76, y: 1843.16}
   m_SizeDelta: {x: 20, y: 5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1402861537
@@ -10768,7 +10763,7 @@ MonoBehaviour:
   acceleration: {x: 0, y: 0, z: 0}
   bombPlaced: 0
   aiDecisionInterval: 0.2
-  aiBombDecisionInterval: 0.5
+  aiBombDecisionInterval: 0.3
 --- !u!135 &8894761913051218850
 SphereCollider:
   m_ObjectHideFlags: 0

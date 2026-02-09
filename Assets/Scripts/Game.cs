@@ -110,11 +110,12 @@ public class Game : MonoBehaviour {
                     else {
                         timerText.color = Color.white;
                     }
-                    // if (timer is < 4 and >= 3){
-                    //     SoundSys.PlaySound("Countdown", volume: 1f).audioSource.volume = 1f;
-                    // }
+                    if (timer is < 3 and >= 2) {
+                        SoundSys.PlaySound("Countdown", volume: 1f).audioSource.volume = 0.15f;
+                    }
                     if (timer < 5) {
                         BlinkScreen(BlinkSide.Fullscreen);
+                        // SoundSys.PlaySound("Countdown").audioSource.volume = 0.1f;
                     }
                     int minutes = Mathf.FloorToInt(timer / 60);
                     int seconds = Mathf.FloorToInt(timer % 60);
@@ -153,7 +154,7 @@ public class Game : MonoBehaviour {
                     countdownText.color = new Color(0, 1f, 0.3f);
                     playerBlue.SetSmokeIntensitySmooth(2f, 0.1f);
                     playerRed.SetSmokeIntensitySmooth(2f, 0.1f);
-                    SoundSys.PlaySound("Cheer", volume: 1f).audioSource.volume = 0.3f;
+                    SoundSys.PlaySound("Cheer", volume: 1f).audioSource.volume = 0.1f;
 
                 }
             }, 3 - i);
@@ -193,7 +194,7 @@ public class Game : MonoBehaviour {
     }
 
     public void EndMatch(){
-        SoundSys.PlaySound("Cheer", volume: 1f).audioSource.volume = 0.3f;
+        SoundSys.PlaySound("Cheer", volume: 0.15f).audioSource.volume = 0.1f;
         mainVirtualCamera.Follow = cameraDefaultTarget.transform;
         if (scores.x > scores.y) {
             blueWinUI.SetActive(true);
@@ -259,6 +260,9 @@ public class Game : MonoBehaviour {
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
+        if (Input.GetKeyDown(KeyCode.F11)) {
+            Screen.fullScreen = !Screen.fullScreen;
+        }
         if (matchStarted) {
             if (Input.GetKeyDown(KeyCode.Escape)) {
                 matchRunning = !matchRunning;
@@ -301,7 +305,7 @@ public class Game : MonoBehaviour {
                 StartMatch();
             }
         }
-        else if (Input.GetKeyDown(KeyCode.F)) {
+        else if (Input.GetKeyDown(KeyCode.F) && selectedSingleMode) {
             playerRed.device = PlayerControlDevice.AI;
             playerRed.aiDecisionInterval = 0.01f;
             playerRed.Init();
