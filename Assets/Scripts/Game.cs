@@ -86,6 +86,7 @@ public class Game : MonoBehaviour {
         matchRunning = false;
         selectedSingleMode = false;
         difficultyUI.SetActive(false);
+        Time.timeScale = 1f;
     }
 
     public void Start(){
@@ -281,6 +282,7 @@ public class Game : MonoBehaviour {
         }
         else if (Input.GetKeyDown(KeyCode.Q)) {
             if (selectedSingleMode) {
+                playerBlue.device = PlayerControlDevice.Keyboard;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.18f;
                 playerRed.Init();
@@ -294,12 +296,14 @@ public class Game : MonoBehaviour {
         }
         else if (Input.GetKeyDown(KeyCode.E)) {
             if (selectedSingleMode) {
+                playerBlue.device = PlayerControlDevice.Keyboard;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.05f;
                 playerRed.Init();
                 StartMatch();
             }
             else {
+                playerBlue.device = PlayerControlDevice.Keyboard;
                 playerRed.device = PlayerControlDevice.Keyboard;
                 playerRed.Init();
                 StartMatch();

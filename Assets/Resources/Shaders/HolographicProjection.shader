@@ -139,7 +139,7 @@
             #pragma fragment frag
             #pragma target 3.0
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             // #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Common/CommonShaderMethods.hlsl"
 
@@ -285,5 +285,5 @@
         }
     }
 
-    Fallback "Universal Render Pipeline/Lit"
+//    Fallback "Universal Render Pipeline/Lit"
 }

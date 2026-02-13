@@ -29,16 +29,18 @@ Material:
     m_TexEnvs: []
     m_Ints:
     - _ShowInnerOutline: 0
-    - _StencilVal: 5
+    - _StencilVal: 7
     m_Floats:
+    - _CullMode: 2
     - _DiffuseHardness: 0.863
     - _DiffuseOffset: 0.6
     - _DiffuseRange: 1.59
     - _DiffuseStrength: 3.09
-    - _InnerStencilComp: 0
+    - _InnerStencilComp: 1
     - _InnerWidth: 6
     - _OuterStencilComp: 8
     - _OuterWidth: 6
+    - _ZTest: 4
     m_Colors:
     - _Color: {r: 0.638814, g: 0, b: 0, a: 1}
     - _DiffuseColor: {r: 0.15363872, g: 0, b: 0, a: 1}
