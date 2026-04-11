@@ -4,7 +4,7 @@
 QualitySettings:
   m_ObjectHideFlags: 0
   serializedVersion: 5
-  m_CurrentQuality: 2
+  m_CurrentQuality: 0
   m_QualitySettings:
   - serializedVersion: 5
     name: Performant
@@ -22,7 +22,7 @@ QualitySettings:
     globalTextureMipmapLimit: 0
     textureMipmapLimitSettings: []
     anisotropicTextures: 0
-    antiAliasing: 0
+    antiAliasing: 2
     softParticles: 0
     softVegetation: 0
     realtimeReflectionProbes: 0
@@ -36,7 +36,7 @@ QualitySettings:
     lodBias: 0.4
     meshLodThreshold: 1
     maximumLODLevel: 0
-    enableLODCrossFade: 1
+    enableLODCrossFade: 0
     streamingMipmapsActive: 0
     streamingMipmapsAddAllCameras: 1
     streamingMipmapsMemoryBudget: 512
@@ -62,6 +62,7 @@ QualitySettings:
     excludedTargetPlatforms:
     - Android
     - Standalone
+    - WebGL
   - serializedVersion: 5
     name: Balanced
     pixelLightCount: 1
@@ -118,6 +119,7 @@ QualitySettings:
     excludedTargetPlatforms:
     - Standalone
     - Android
+    - WebGL
   - serializedVersion: 5
     name: High Fidelity
     pixelLightCount: 2
@@ -185,7 +187,7 @@ QualitySettings:
     Server: 0
     Stadia: 2
     Standalone: 2
-    WebGL: 1
+    WebGL: 2
     Windows Store Apps: 2
     XboxOne: 2
     iPhone: 1
