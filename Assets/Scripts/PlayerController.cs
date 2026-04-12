@@ -64,6 +64,14 @@ public class PlayerController : MonoBehaviour {
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         transform.rotation = Quaternion.Euler(0, side == PlayerSide.Blue ? 90f : -90f, 0);
+        ClearBuffs();
+    }
+
+    public void ClearBuffs(){
+        speedBoostUntil = 0f;
+        invincibleUntil = 0f;
+        doubleScoreUntil = 0f;
+        if (rb != null) rb.mass = baseMass;
     }
 
     public void Awake(){
@@ -88,32 +96,72 @@ public class PlayerController : MonoBehaviour {
         // mr = player.GetComponentInChildren<MeshRenderer>();
         rb = player.GetComponent<Rigidbody>();
         keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
-        ResetPosition();
-        Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+        baseAcc = acc;
+        baseMaxSpeed = maxSpeed;
+        baseMass = rb.mass;
         var mats = mr.materials;
         originalMaterialColors = new Color[mats.Length];
         for (int i = 0; i < mats.Length; i++)
             originalMaterialColors[i] = mats[i].GetColor(buffColorId);
+        ResetPosition();
+        Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
     }
 
     static readonly int buffColorId = Shader.PropertyToID("_Color");
     Color[] originalMaterialColors;
-    Coroutine buffColorCoroutine;
 
-    public void SetBuffColor(Color tintColor, float duration){
-        if (buffColorCoroutine != null) StopCoroutine(buffColorCoroutine);
-        buffColorCoroutine = StartCoroutine(BuffColorRoutine(tintColor, duration));
+    // Buff timestamps — a buff is active while Time.time < *Until.
+    // Each frame UpdateBuffs() applies runtime effects and material color based on these.
+    public float speedBoostUntil = 0f;
+    public float invincibleUntil = 0f;
+    public float speedBoostMultiplier = 1.5f;
+
+    // Baselines captured in Init so runtime values are always derived from a known-good source,
+    // never from a possibly-already-boosted "current" value. Prevents compounding stack bugs.
+    float baseAcc, baseMaxSpeed, baseMass;
+
+    enum BuffVisual { None, SpeedBoost, DoubleScore, Invincible }
+    BuffVisual lastBuffVisual = BuffVisual.None;
+
+    public void ApplySpeedBoost(float duration, float multiplier){
+        speedBoostUntil = Time.time + duration;
+        speedBoostMultiplier = multiplier;
     }
 
-    IEnumerator BuffColorRoutine(Color tintColor, float duration){
+    public void ApplyInvincibility(float duration){
+        invincibleUntil = Time.time + duration;
+    }
+
+    public void ApplyDoubleScore(float duration){
+        doubleScoreUntil = Time.time + duration;
+    }
+
+    void UpdateBuffs(){
+        bool speedActive = Time.time < speedBoostUntil;
+        bool invincibleActive = Time.time < invincibleUntil;
+        bool doubleActive = Time.time < doubleScoreUntil;
+
+        acc = speedActive ? baseAcc * speedBoostMultiplier : baseAcc;
+        maxSpeed = speedActive ? baseMaxSpeed * speedBoostMultiplier : baseMaxSpeed;
+        rb.mass = invincibleActive ? 100000f : baseMass;
+
+        BuffVisual current = BuffVisual.None;
+        if (invincibleActive) current = BuffVisual.Invincible;
+        else if (speedActive) current = BuffVisual.SpeedBoost;
+        else if (doubleActive) current = BuffVisual.DoubleScore;
+
+        if (current == lastBuffVisual) return;
+        lastBuffVisual = current;
+        Color c = current switch {
+            BuffVisual.Invincible => new Color(2f, 2f, 2f),
+            BuffVisual.SpeedBoost => new Color(2f, 1.5f, 0.2f),
+            BuffVisual.DoubleScore => new Color(0.2f, 2f, 0.2f),
+            _ => Color.clear
+        };
         var mats = mr.materials;
-        for (int i = 0; i < mats.Length; i++)
-            mats[i].SetColor(buffColorId, tintColor);
-        yield return new WaitForSeconds(duration);
-        mats = mr.materials;
-        for (int i = 0; i < mats.Length; i++)
-            mats[i].SetColor(buffColorId, originalMaterialColors[i]);
-        buffColorCoroutine = null;
+        for (int i = 0; i < mats.Length; i++) {
+            mats[i].SetColor(buffColorId, current == BuffVisual.None ? originalMaterialColors[i] : c);
+        }
     }
 
     Coroutine smokeCoroutine;
@@ -148,6 +196,10 @@ public class PlayerController : MonoBehaviour {
 
     public float doubleScoreUntil = 0f;
 
+    void LateUpdate(){
+        UpdateBuffs();
+    }
+
     // AI decision delay variables
     public float aiDecisionInterval = 0.3f;// seconds between decisions
     private float aiDecisionTimer = 0f;
@@ -173,7 +225,7 @@ public class PlayerController : MonoBehaviour {
                 direction -= Vector3.right;
             }
             if (!bombPlaced && Input.GetKeyDown(keys[4]) && Game.instance.matchRunning) {
-                Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+                Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                 bombPlaced = true;
             }
             if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
@@ -259,7 +311,7 @@ public class PlayerController : MonoBehaviour {
                         bool goodPosition = enemyDist < 2.5f;// closer range = higher priority
 
                         if (enemyApproaching || goodPosition) {
-                            Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+                            Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                             bombPlaced = true;
                         }
                     }

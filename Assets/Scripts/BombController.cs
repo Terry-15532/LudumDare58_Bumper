@@ -35,7 +35,7 @@ public class BombController : MonoBehaviour {
         else {
             p = Game.instance.playerBlue;
         }
-        var dir = p.transform.position - transform.position;
+        var dir = p.player.transform.position - transform.position;
         dir.y = 0;
         float dist = dir.magnitude;
         dir.Normalize();
