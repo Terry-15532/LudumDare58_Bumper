@@ -518,6 +518,63 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2510, y: 1314.5199}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &74736207
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 74736209}
+  - component: {fileID: 74736208}
+  m_Layer: 0
+  m_Name: PickupSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &74736208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 74736207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df8b85cb3c2705f4e9611ba017ba22d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupSpawner
+  speedBoostPrefab: {fileID: 2240154681048908655, guid: 40d48173e924bd54e9fb38611406cc08,
+    type: 3}
+  doubleScorePrefab: {fileID: 2276598392632206587, guid: 08a3a54b534a2d3429be4b420ee4f304,
+    type: 3}
+  invincibilityPrefab: {fileID: 5595825825287262487, guid: 6d952a9298955b247b86dfd01fd1c5d2,
+    type: 3}
+  spawnInterval: 8
+  minRadius: 3
+  maxRadius: 5
+  spawnY: 2.5
+  maxAlive: 2
+  boundsX: 9.5
+  boundsZ: 5.5
+--- !u!4 &74736209
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 74736207}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.24176, y: 1.65, z: 0.79396}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &85688525
 GameObject:
   m_ObjectHideFlags: 0
@@ -610,6 +667,7 @@ MonoBehaviour:
   keys: 00000000000000000000000000000000
   acceleration: {x: 0, y: 0, z: 0}
   bombPlaced: 0
+  nextCoinMultiplier: 1
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.05
 --- !u!4 &85688529
@@ -10836,6 +10894,7 @@ MonoBehaviour:
   keys: 00000000000000000000000000000000
   acceleration: {x: 0, y: 0, z: 0}
   bombPlaced: 0
+  nextCoinMultiplier: 1
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.3
 --- !u!135 &8894761913051218850
@@ -10982,3 +11041,4 @@ SceneRoots:
   - {fileID: 534769509}
   - {fileID: 1221883833}
   - {fileID: 1820458561}
+  - {fileID: 74736209}

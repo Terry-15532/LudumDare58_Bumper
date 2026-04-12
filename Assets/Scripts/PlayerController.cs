@@ -90,6 +90,30 @@ public class PlayerController : MonoBehaviour {
         keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+        var mats = mr.materials;
+        originalMaterialColors = new Color[mats.Length];
+        for (int i = 0; i < mats.Length; i++)
+            originalMaterialColors[i] = mats[i].GetColor(buffColorId);
+    }
+
+    static readonly int buffColorId = Shader.PropertyToID("_Color");
+    Color[] originalMaterialColors;
+    Coroutine buffColorCoroutine;
+
+    public void SetBuffColor(Color tintColor, float duration){
+        if (buffColorCoroutine != null) StopCoroutine(buffColorCoroutine);
+        buffColorCoroutine = StartCoroutine(BuffColorRoutine(tintColor, duration));
+    }
+
+    IEnumerator BuffColorRoutine(Color tintColor, float duration){
+        var mats = mr.materials;
+        for (int i = 0; i < mats.Length; i++)
+            mats[i].SetColor(buffColorId, tintColor);
+        yield return new WaitForSeconds(duration);
+        mats = mr.materials;
+        for (int i = 0; i < mats.Length; i++)
+            mats[i].SetColor(buffColorId, originalMaterialColors[i]);
+        buffColorCoroutine = null;
     }
 
     Coroutine smokeCoroutine;
@@ -121,6 +145,8 @@ public class PlayerController : MonoBehaviour {
     Vector3 direction = Vector3.zero;
 
     public bool bombPlaced = false;
+
+    public float doubleScoreUntil = 0f;
 
     // AI decision delay variables
     public float aiDecisionInterval = 0.3f;// seconds between decisions
@@ -268,7 +294,14 @@ public class PlayerController : MonoBehaviour {
         }
         else if (other.gameObject.name == "Coin") {
             other.gameObject.GetComponent<Coin>().ChangePosition();
-            Game.instance.AddScore(side, 1);
+            int mult = Time.time < doubleScoreUntil ? 2 : 1;
+            Game.instance.AddScore(side, mult);
+        }
+        else {
+            var pickup = other.GetComponentInParent<PickupBase>();
+            if (pickup != null) {
+                pickup.OnPickup(this);
+            }
         }
     }
 
