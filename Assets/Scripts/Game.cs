@@ -402,7 +402,7 @@ public class Game : MonoBehaviour {
     }
 
     public void Update(){
-        if (!matchRunning && escapeAction.WasPressedThisFrame()) {
+        if (!matchRunning && selectAction.WasPressedThisFrame()) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);

@@ -35,7 +35,8 @@ public class PlayerController : MonoBehaviour {
 
     // public InputActionMap inputMap;
     public InputActionAsset input;
-    public InputAction movement, placeBomb, useProp, trackball;
+    public InputAction movement, placeBomb, dash, shield, taunt;
+    public InputAction trackball;
 
     public GameObject BombPrefab;
 
@@ -87,7 +88,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     public int gamePadIndex;
-    
+
     public void Awake(){
         Init();
     }
@@ -120,7 +121,7 @@ public class PlayerController : MonoBehaviour {
             originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
-        
+
         if (device == PlayerControlDevice.Gamepad) {
             // input.user.UnpairDevices();
             // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
@@ -128,7 +129,9 @@ public class PlayerController : MonoBehaviour {
             var cloned = Instantiate(input).FindActionMap("PlayerMovement");
             movement = cloned.FindAction("Movement");
             placeBomb = cloned.FindAction("PlaceBomb");
-            useProp = cloned.FindAction("UseProp");
+            dash = cloned.FindAction("Dash");
+            shield = cloned.FindAction("Shield");
+            // taunt = cloned.FindAction("Taunt");
             trackball = cloned.FindAction("Trackball");
             // foreach (var action in cloned.actionMaps) {
             //     action.ApplyBindingOverride(new InputBinding() {
@@ -233,21 +236,21 @@ public class PlayerController : MonoBehaviour {
     public bool bombPlaced = false;
 
     // ── Dash ──────────────────────────────────────────────────────────────
-    public float dashForce        = 28f;
-    public float dashCooldown     = 2f;
-    float        dashCooldownLeft = 0f;
+    public float dashForce = 28f;
+    public float dashCooldown = 2f;
+    float dashCooldownLeft = 0f;
 
     // ── Shield ────────────────────────────────────────────────────────────
-    public float shieldDuration    = 1.5f;
-    public float shieldCooldown    = 4f;
+    public float shieldDuration = 1.5f;
+    public float shieldCooldown = 4f;
     public float shieldReflectForce = 18f;
-    float        shieldCooldownLeft = 0f;
-    public bool  shieldActive       = false;
-    float        shieldActiveLeft   = 0f;
+    float shieldCooldownLeft = 0f;
+    public bool shieldActive = false;
+    float shieldActiveLeft = 0f;
 
     // ── Taunt ─────────────────────────────────────────────────────────────
-    public float tauntCooldown     = 3f;
-    float        tauntCooldownLeft = 0f;
+    public float tauntCooldown = 3f;
+    float tauntCooldownLeft = 0f;
 
     public float doubleScoreUntil = 0f;
 
@@ -266,9 +269,9 @@ public class PlayerController : MonoBehaviour {
 
     void Update(){
         // Cooldown timers (unscaled so they tick during pause-exempt moments, scaled otherwise)
-        dashCooldownLeft   = Mathf.Max(0, dashCooldownLeft   - Time.deltaTime);
+        dashCooldownLeft = Mathf.Max(0, dashCooldownLeft - Time.deltaTime);
         shieldCooldownLeft = Mathf.Max(0, shieldCooldownLeft - Time.deltaTime);
-        tauntCooldownLeft  = Mathf.Max(0, tauntCooldownLeft  - Time.deltaTime);
+        tauntCooldownLeft = Mathf.Max(0, tauntCooldownLeft - Time.deltaTime);
 
         // Shield active timer
         if (shieldActive) {
@@ -276,33 +279,34 @@ public class PlayerController : MonoBehaviour {
             if (shieldActiveLeft <= 0f) shieldActive = false;
         }
 
-        if (device == PlayerControlDevice.Keyboard) {
-            direction = Vector3.zero;
-            if (Input.GetKey(keys[0])) direction -= Vector3.forward;
-            if (Input.GetKey(keys[1])) direction -= Vector3.back;
-            if (Input.GetKey(keys[2])) direction -= Vector3.left;
-            if (Input.GetKey(keys[3])) direction -= Vector3.right;
-
-            if (!Game.instance.matchRunning) return;
-
-            // Bomb
-            if (!bombPlaced && Input.GetKeyDown(keys[4])) {
-                Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
-                bombPlaced = true;
-            }
-            // Dash
-            if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
-                PerformDash();
-            }
-            // Shield
-            if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
-                ActivateShield();
-            }
-            // Taunt
-            if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
-                PerformTaunt();
-        }
-        else if (device == PlayerControlDevice.Gamepad) {
+        // if (device == PlayerControlDevice.Keyboard) {
+        //     direction = Vector3.zero;
+        //     if (Input.GetKey(keys[0])) direction -= Vector3.forward;
+        //     if (Input.GetKey(keys[1])) direction -= Vector3.back;
+        //     if (Input.GetKey(keys[2])) direction -= Vector3.left;
+        //     if (Input.GetKey(keys[3])) direction -= Vector3.right;
+        //
+        //     if (!Game.instance.matchRunning) return;
+        //
+        //     // Bomb
+        //     if (!bombPlaced && Input.GetKeyDown(keys[4])) {
+        //         Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
+        //         bombPlaced = true;
+        //     }
+        //     // Dash
+        //     if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
+        //         PerformDash();
+        //     }
+        //     // Shield
+        //     if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
+        //         ActivateShield();
+        //     }
+        //     // Taunt
+        //     if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
+        //         PerformTaunt();
+        //     }
+        // }
+        if (device == PlayerControlDevice.Gamepad) {
             var v = movement.ReadValue<Vector2>();
             // Debug.Log("Side: " + side + ", " + v);
             direction = new Vector3(-v.x, 0, -v.y);
@@ -310,10 +314,24 @@ public class PlayerController : MonoBehaviour {
                 Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                 bombPlaced = true;
             }
+
+            if (!bombPlaced && dash.WasPressedThisFrame() && Game.instance.matchRunning) {
+                PerformDash();
+            }
+
+            if (!bombPlaced && shield.WasPressedThisFrame() && Game.instance.matchRunning) {
+                ActivateShield();
+            }
+
+            if (!bombPlaced && taunt.WasPressedThisFrame() && Game.instance.matchRunning) {
+                PerformTaunt();
+            }
+
             if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
         }
+
     }
 
     void FixedUpdate(){
@@ -414,15 +432,14 @@ public class PlayerController : MonoBehaviour {
     // }
 
     // ── Dash ──────────────────────────────────────────────────────────────
-    public void PerformDash() {
+    public void PerformDash(){
         // Dash towards the opponent; fall back to movement direction or forward
         PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
         Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
         toOpponent.y = 0;
-        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized :
-                    (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
         rb.linearVelocity = d * dashForce;
-        dashCooldownLeft  = dashCooldown;
+        dashCooldownLeft = dashCooldown;
 
         SoundSys.PlaySound("Hit").audioSource.volume = 0.5f;
         CameraShake.Shake(0.35f, 0.18f);
@@ -443,9 +460,9 @@ public class PlayerController : MonoBehaviour {
     }
 
     // ── Shield ────────────────────────────────────────────────────────────
-    public void ActivateShield() {
-        shieldActive       = true;
-        shieldActiveLeft   = shieldDuration;
+    public void ActivateShield(){
+        shieldActive = true;
+        shieldActiveLeft = shieldDuration;
         shieldCooldownLeft = shieldCooldown;
 
         SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
@@ -478,7 +495,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     // ── Taunt ─────────────────────────────────────────────────────────────
-    public void PerformTaunt() {
+    public void PerformTaunt(){
         tauntCooldownLeft = tauntCooldown;
         PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
 
@@ -534,7 +551,7 @@ public class PlayerController : MonoBehaviour {
         // Shield reflect: push the colliding player away
         if (shieldActive && collision.gameObject.CompareTag("Player")) {
             var other = collision.gameObject.GetComponent<PlayerController>()
-                        ?? collision.gameObject.GetComponentInParent<PlayerController>();
+                ?? collision.gameObject.GetComponentInParent<PlayerController>();
             if (other != null && other != this) {
                 Vector3 dir = (other.player.transform.position - player.transform.position).normalized;
                 dir.y = 0;
