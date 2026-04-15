@@ -264,10 +264,58 @@ MonoBehaviour:
   walls: []
   cameraDefaultTarget: {fileID: 1221883832}
   playerCombinedTarget: {fileID: 1308186017}
+  input: {fileID: -944628639613478452, guid: d96c26560950244498a6b97168c43fe6, type: 3}
+  leftAction:
+    m_Name: Left
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 0934fcfa-1fb1-45e3-a9e0-c51d4d3f596e
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  rightAction:
+    m_Name: Right
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 9c69fa63-ca22-40b5-bda6-244b59293819
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  selectAction:
+    m_Name: Select
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: f15e476e-e28d-4b4d-9b48-1c35db751856
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  escapeAction:
+    m_Name: Escape
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 9b278043-6d48-4556-a780-d864bb409e1a
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  nfcAction:
+    m_Name: Nfc
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 25a5b41e-2be5-48b6-a6a8-932cde181912
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
   mainVirtualCamera: {fileID: 372232034}
   matchStarted: 0
   matchRunning: 0
+  nfcReader: {fileID: 0}
   selectedSingleMode: 0
+  nfcMode: 0
 --- !u!1 &55286810
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,6 +635,7 @@ GameObject:
   - component: {fileID: 85688528}
   - component: {fileID: 85688527}
   - component: {fileID: 85688526}
+  - component: {fileID: 85688530}
   m_Layer: 0
   m_Name: Character_Blue
   m_TagString: Untagged
@@ -658,16 +707,57 @@ MonoBehaviour:
   head: {fileID: 1714098954}
   acc: 40
   maxSpeed: 35
-  device: 0
+  device: 1
   side: 0
   rb: {fileID: 85688527}
   mr: {fileID: 335057378}
+  input: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613, type: 3}
+  movement:
+    m_Name: Movement
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 7ef3e60b-02b8-4dcf-9625-f19e409617f8
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  placeBomb:
+    m_Name: Place Bomb
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 425e01c1-0984-490d-b441-a0bb3584ec0b
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  useProp:
+    m_Name: Use Prop
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: fe51ba22-da98-4873-9f70-9bc31e73ba47
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  trackball:
+    m_Name: Trackball
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 8e876d0e-b031-4c66-a1f4-81699be614c1
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
   BombPrefab: {fileID: 6442154649261938019, guid: 0bb3b0c5752c5cc46aab81ed861da5ae,
     type: 3}
   keys: 00000000000000000000000000000000
+  gamePadIndex: 1
   acceleration: {x: 0, y: 0, z: 0}
+  speedBoostUntil: 0
+  invincibleUntil: 0
+  speedBoostMultiplier: 1.5
   bombPlaced: 0
-  nextCoinMultiplier: 1
+  doubleScoreUntil: 0
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.05
 --- !u!4 &85688529
@@ -688,6 +778,37 @@ Transform:
   - {fileID: 2067322180}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &85688530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 85688525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+  m_Actions: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613,
+    type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: PlayerMovement
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 330585545}
 --- !u!1 &112959358
 GameObject:
   m_ObjectHideFlags: 0
@@ -6474,7 +6595,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1198679593}
   - component: {fileID: 1198679592}
-  - component: {fileID: 1198679594}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -6512,37 +6632,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1198679594
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1198679590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613,
-    type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: PlayerMovement
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 330585545}
 --- !u!1 &1221883832
 GameObject:
   m_ObjectHideFlags: 0
@@ -9213,69 +9302,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &1820458559
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1820458561}
-  - component: {fileID: 1820458560}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1820458560
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1820458559}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613,
-    type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: PlayerMovement
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
---- !u!4 &1820458561
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1820458559}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.37202, y: 3.0894, z: -23.91332}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1825653983
 GameObject:
   m_ObjectHideFlags: 0
@@ -10835,6 +10861,7 @@ GameObject:
   - component: {fileID: 8894761913051218849}
   - component: {fileID: 8894761913051218848}
   - component: {fileID: 8894761913051218850}
+  - component: {fileID: 8894761913051218851}
   m_Layer: 0
   m_Name: Character_Red
   m_TagString: Untagged
@@ -10885,16 +10912,57 @@ MonoBehaviour:
   head: {fileID: 6121400404529694591}
   acc: 40
   maxSpeed: 35
-  device: 2
+  device: 1
   side: 1
   rb: {fileID: 8894761913051218848}
   mr: {fileID: 5203570025574662800}
+  input: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613, type: 3}
+  movement:
+    m_Name: Movement
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: a52c19bb-8090-40d6-bb7c-962905bb3d75
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  placeBomb:
+    m_Name: Place Bomb
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 76462e01-b839-47ae-9f17-775fa5e48f98
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  useProp:
+    m_Name: Use Prop
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 312b26b1-9705-486b-93de-3bb4c2a53f2d
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  trackball:
+    m_Name: Trackball
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: e3ccc739-265c-48b9-9efe-ab2a26bf8d06
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
   BombPrefab: {fileID: 9054351398392940397, guid: b412bfbc2b7b38740a2376cbc2d0d836,
     type: 3}
   keys: 00000000000000000000000000000000
+  gamePadIndex: 0
   acceleration: {x: 0, y: 0, z: 0}
+  speedBoostUntil: 0
+  invincibleUntil: 0
+  speedBoostMultiplier: 1.5
   bombPlaced: 0
-  nextCoinMultiplier: 1
+  doubleScoreUntil: 0
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.3
 --- !u!135 &8894761913051218850
@@ -10918,6 +10986,37 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1.2
   m_Center: {x: 0, y: 0.6, z: 0}
+--- !u!114 &8894761913051218851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8894761913051218846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+  m_Actions: {fileID: -944628639613478452, guid: 25507c1be2ee5324fbced4cd352a9613,
+    type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: PlayerMovement
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 330585545}
 --- !u!4 &9063365605197079804
 Transform:
   m_ObjectHideFlags: 0
@@ -11040,5 +11139,4 @@ SceneRoots:
   - {fileID: 1198679593}
   - {fileID: 534769509}
   - {fileID: 1221883833}
-  - {fileID: 1820458561}
   - {fileID: 74736209}

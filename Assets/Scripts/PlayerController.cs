@@ -3,17 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
 using UnityEngine.Serialization;
+using UnityEngine.XR;
+using InputDevice = UnityEngine.InputSystem.InputDevice;
 
 public enum PlayerControlDevice {
     Keyboard,
-    Joystick,
+    Gamepad,
     AI
 }
 
 public enum PlayerSide {
-    Blue,
-    Red
+    Blue = 0,
+    Red = 1
 }
 
 public class PlayerController : MonoBehaviour {
@@ -29,27 +33,22 @@ public class PlayerController : MonoBehaviour {
     public Rigidbody rb;
     public MeshRenderer mr;
 
+    // public InputActionMap inputMap;
+    public InputActionAsset input;
+    public InputAction movement, placeBomb, useProp, trackball;
+
     public GameObject BombPrefab;
 
-    // keys[0-3]: up/down/left/right  [4]: bomb  [5]: dash  [6]: shield  [7]: taunt
-    public KeyCode[] keys = new KeyCode[8];
 
-    public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
-    public static KeyCode[] blueKeys = {
-        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D,
-        KeyCode.Space,
-        KeyCode.LeftShift,
-        KeyCode.LeftControl,
-        KeyCode.Z
-    };
-    public static KeyCode[] redKeys = {
-        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow,
-        KeyCode.Return,
-        KeyCode.RightShift,
-        KeyCode.RightControl,
-        KeyCode.Slash
-    };
+    static readonly Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
+
+    // public static KeyCode[] blueKeys = {
+    //     KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space
+    // };
+    // public static KeyCode[] redKeys = {
+    //     KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return
+    // };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
 
@@ -87,6 +86,8 @@ public class PlayerController : MonoBehaviour {
         if (rb != null) rb.mass = baseMass;
     }
 
+    public int gamePadIndex;
+    
     public void Awake(){
         Init();
     }
@@ -108,7 +109,8 @@ public class PlayerController : MonoBehaviour {
     public void Init(){
         // mr = player.GetComponentInChildren<MeshRenderer>();
         rb = player.GetComponent<Rigidbody>();
-        keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // input.SwitchCurrentActionMap(side == PlayerSide.Blue ? "BluePlayer" : "RedPlayer");
         baseAcc = acc;
         baseMaxSpeed = maxSpeed;
         baseMass = rb.mass;
@@ -118,6 +120,29 @@ public class PlayerController : MonoBehaviour {
             originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+        
+        if (device == PlayerControlDevice.Gamepad) {
+            // input.user.UnpairDevices();
+            // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
+            Gamepad pad = Gamepad.all[gamePadIndex];
+            var cloned = Instantiate(input).FindActionMap("PlayerMovement");
+            movement = cloned.FindAction("Movement");
+            placeBomb = cloned.FindAction("PlaceBomb");
+            useProp = cloned.FindAction("UseProp");
+            trackball = cloned.FindAction("Trackball");
+            // foreach (var action in cloned.actionMaps) {
+            //     action.ApplyBindingOverride(new InputBinding() {
+            //         overrideInteractions = "",
+            //         groups = "Gamepad"
+            //     });
+            // }
+            // InputSystem.AddDevice(pad);
+            cloned.devices = new[] {
+                pad, (InputDevice)Keyboard.current
+            };
+            cloned.Enable();
+        }
+
     }
 
     static readonly int buffColorId = Shader.PropertyToID("_Color");
@@ -181,9 +206,10 @@ public class PlayerController : MonoBehaviour {
 
     public void SetSmokeIntensitySmooth(float targetIntensity, float duration){
         if (smokeCoroutine != null) {
-            Tools.callDelayedHelper.StopCoroutine(smokeCoroutine);
+            StopCoroutine(smokeCoroutine);
         }
         smokeCoroutine = Tools.callDelayedHelper.StartCoroutine(SmoothIntensity(targetIntensity, duration));
+
     }
 
     IEnumerator SmoothIntensity(float targetIntensity, float duration){
@@ -275,8 +301,15 @@ public class PlayerController : MonoBehaviour {
             // Taunt
             if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
                 PerformTaunt();
+        }
+        else if (device == PlayerControlDevice.Gamepad) {
+            var v = movement.ReadValue<Vector2>();
+            // Debug.Log("Side: " + side + ", " + v);
+            direction = new Vector3(-v.x, 0, -v.y);
+            if (!bombPlaced && placeBomb.WasPressedThisFrame() && Game.instance.matchRunning) {
+                Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
+                bombPlaced = true;
             }
-
             if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
@@ -293,7 +326,7 @@ public class PlayerController : MonoBehaviour {
             CalculateAcc();
             UpdateHeadAnimation();
 
-            if (device == PlayerControlDevice.Keyboard) {
+            if (device == PlayerControlDevice.Keyboard || device == PlayerControlDevice.Gamepad) {
                 rb.AddForce(direction.normalized * acc, ForceMode.Acceleration);
             }
             else if (device == PlayerControlDevice.AI) {
@@ -525,10 +558,11 @@ public class PlayerController : MonoBehaviour {
                 Game.instance.BlinkScreen(BlinkSide.Fullscreen);
             }
         }
-
         if (collision.gameObject.CompareTag("Wall")) {
             Wall wall = collision.gameObject.GetComponent<Wall>();
-            if (wall == null) wall = collision.gameObject.GetComponentInParent<Wall>();
+            if (wall == null) {
+                wall = collision.gameObject.GetComponentInParent<Wall>();
+            }
             wall?.SetOutlineBlink(side);
         }
     }

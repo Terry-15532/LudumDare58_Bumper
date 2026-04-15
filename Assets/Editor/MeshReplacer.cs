@@ -1,94 +1,106 @@
 ﻿using UnityEngine;
 using UnityEditor;
 
-public class MeshReplacer : EditorWindow
+namespace Editor
 {
-    [MenuItem("Tools/Replace Character.blend with Character.fbx")]
-    public static void ReplaceMeshes()
+    public class MeshReplacer : EditorWindow
     {
-        string blendPath = "Assets/Models/Character.blend"; // Assuming typical path, but we can search by name
-        string fbxPath = "Assets/Models/Character.fbx";     // Can be customized or search through AssetDatabase
+        private GameObject sourceModel;
+        private GameObject targetModel;
 
-        // Find the fbx asset path
-        string[] fbxAssets = AssetDatabase.FindAssets("Character t:Model");
-        string exactFbxPath = "";
-        foreach (string guid in fbxAssets)
+        [MenuItem("Tools/Replace Meshes")]
+        public static void ShowWindow()
         {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (path.EndsWith("Character.fbx", System.StringComparison.OrdinalIgnoreCase))
-            {
-                exactFbxPath = path;
-                break;
-            }
+            GetWindow<MeshReplacer>("Replace Meshes");
         }
 
-        if (string.IsNullOrEmpty(exactFbxPath))
+        private void OnGUI()
         {
-            Debug.LogError("Could not find Character.fbx in the project.");
-            return;
-        }
+            GUILayout.Label("Select Source and Target Models", EditorStyles.boldLabel);
 
-        // Load all meshes from the fbx
-        Object[] allFbxAssets = AssetDatabase.LoadAllAssetsAtPath(exactFbxPath);
-        System.Collections.Generic.Dictionary<string, Mesh> fbxMeshes = new System.Collections.Generic.Dictionary<string, Mesh>();
-        foreach (Object obj in allFbxAssets)
-        {
-            if (obj is Mesh mesh)
+            sourceModel = (GameObject)EditorGUILayout.ObjectField("Source Model (.blend)", sourceModel, typeof(GameObject), false);
+            targetModel = (GameObject)EditorGUILayout.ObjectField("Target Model (.fbx)", targetModel, typeof(GameObject), false);
+
+            if (GUILayout.Button("Replace Meshes"))
             {
-                fbxMeshes[mesh.name] = mesh;
-            }
-        }
-
-        int replaceCount = 0;
-
-        // Replace MeshFilters
-        MeshFilter[] meshFilters = FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (MeshFilter mf in meshFilters)
-        {
-            if (mf.sharedMesh != null)
-            {
-                string assetPath = AssetDatabase.GetAssetPath(mf.sharedMesh);
-                if (assetPath.EndsWith("Character.blend", System.StringComparison.OrdinalIgnoreCase))
+                if (sourceModel != null && targetModel != null)
                 {
-                    if (fbxMeshes.TryGetValue(mf.sharedMesh.name, out Mesh replacementMesh))
-                    {
-                        Undo.RecordObject(mf, "Replace Mesh");
-                        mf.sharedMesh = replacementMesh;
-                        replaceCount++;
-                        EditorUtility.SetDirty(mf);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Mesh '{mf.sharedMesh.name}' not found in Character.fbx!");
-                    }
+                    ReplaceSelectedMeshes();
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Error", "Please select both source and target models.", "OK");
                 }
             }
         }
 
-        // Replace SkinnedMeshRenderers
-        SkinnedMeshRenderer[] skinnedMeshRenderers = FindObjectsByType<SkinnedMeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        foreach (SkinnedMeshRenderer smr in skinnedMeshRenderers)
+        private void ReplaceSelectedMeshes()
         {
-            if (smr.sharedMesh != null)
+            string blendPath = AssetDatabase.GetAssetPath(sourceModel);
+            string fbxPath = AssetDatabase.GetAssetPath(targetModel);
+
+            // Load all meshes from the target fbx
+            Object[] allFbxAssets = AssetDatabase.LoadAllAssetsAtPath(fbxPath);
+            System.Collections.Generic.Dictionary<string, Mesh> fbxMeshes = new System.Collections.Generic.Dictionary<string, Mesh>();
+            foreach (Object obj in allFbxAssets)
             {
-                string assetPath = AssetDatabase.GetAssetPath(smr.sharedMesh);
-                if (assetPath.EndsWith("Character.blend", System.StringComparison.OrdinalIgnoreCase))
+                if (obj is Mesh mesh)
                 {
-                    if (fbxMeshes.TryGetValue(smr.sharedMesh.name, out Mesh replacementMesh))
+                    fbxMeshes[mesh.name] = mesh;
+                }
+            }
+
+            int replaceCount = 0;
+
+            // Replace MeshFilters
+            MeshFilter[] meshFilters = FindObjectsByType<MeshFilter>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (MeshFilter mf in meshFilters)
+            {
+                if (mf.sharedMesh != null)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(mf.sharedMesh);
+                    if (assetPath == blendPath)
                     {
-                        Undo.RecordObject(smr, "Replace Skinned Mesh");
-                        smr.sharedMesh = replacementMesh;
-                        replaceCount++;
-                        EditorUtility.SetDirty(smr);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"SkinnedMesh '{smr.sharedMesh.name}' not found in Character.fbx!");
+                        if (fbxMeshes.TryGetValue(mf.sharedMesh.name, out Mesh replacementMesh))
+                        {
+                            Undo.RecordObject(mf, "Replace Mesh");
+                            mf.sharedMesh = replacementMesh;
+                            replaceCount++;
+                            EditorUtility.SetDirty(mf);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"Mesh '{mf.sharedMesh.name}' not found in target model!");
+                        }
                     }
                 }
             }
-        }
 
-        Debug.Log($"Replaced {replaceCount} meshes from Character.blend with Character.fbx successfully.");
+            // Replace SkinnedMeshRenderers
+            SkinnedMeshRenderer[] skinnedMeshRenderers = FindObjectsByType<SkinnedMeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (SkinnedMeshRenderer smr in skinnedMeshRenderers)
+            {
+                if (smr.sharedMesh != null)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(smr.sharedMesh);
+                    if (assetPath == blendPath)
+                    {
+                        if (fbxMeshes.TryGetValue(smr.sharedMesh.name, out Mesh replacementMesh))
+                        {
+                            Undo.RecordObject(smr, "Replace Skinned Mesh");
+                            smr.sharedMesh = replacementMesh;
+                            replaceCount++;
+                            EditorUtility.SetDirty(smr);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"SkinnedMesh '{smr.sharedMesh.name}' not found in target model!");
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"Replaced {replaceCount} meshes from {sourceModel.name} with {targetModel.name} successfully.");
+        }
     }
 }
