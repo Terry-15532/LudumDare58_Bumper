@@ -707,7 +707,7 @@ MonoBehaviour:
   head: {fileID: 1714098954}
   acc: 40
   maxSpeed: 35
-  device: 1
+  device: 2
   side: 0
   rb: {fileID: 85688527}
   mr: {fileID: 335057378}
@@ -730,11 +730,29 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
-  useProp:
-    m_Name: Use Prop
+  dash:
+    m_Name: Dash
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: fe51ba22-da98-4873-9f70-9bc31e73ba47
+    m_Id: afe7aff5-166c-4ce2-94e8-2990cac1348d
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  shield:
+    m_Name: Shield
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 34faf00e-a9a9-4eb8-9125-0c7fcec25a61
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  taunt:
+    m_Name: Taunt
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 7ac580cd-66de-4953-a016-22082aee9828
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
@@ -750,13 +768,19 @@ MonoBehaviour:
     m_Flags: 0
   BombPrefab: {fileID: 6442154649261938019, guid: 0bb3b0c5752c5cc46aab81ed861da5ae,
     type: 3}
-  keys: 00000000000000000000000000000000
   gamePadIndex: 1
   acceleration: {x: 0, y: 0, z: 0}
   speedBoostUntil: 0
   invincibleUntil: 0
   speedBoostMultiplier: 1.5
   bombPlaced: 0
+  dashForce: 28
+  dashCooldown: 2
+  shieldDuration: 1.5
+  shieldCooldown: 4
+  shieldReflectForce: 18
+  shieldActive: 0
+  tauntCooldown: 3
   doubleScoreUntil: 0
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.05
@@ -10935,11 +10959,29 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
-  useProp:
-    m_Name: Use Prop
+  dash:
+    m_Name: 
     m_Type: 0
     m_ExpectedControlType: 
-    m_Id: 312b26b1-9705-486b-93de-3bb4c2a53f2d
+    m_Id: 3d91d9dc-6f91-469f-8a5a-74560d7b2e70
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  shield:
+    m_Name: 
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: daf65cce-ae35-4374-b090-10e117cfca16
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  taunt:
+    m_Name: 
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 04c28b35-6682-4a7e-af66-757ef84d2a92
     m_Processors: 
     m_Interactions: 
     m_SingletonActionBindings: []
@@ -10955,13 +10997,19 @@ MonoBehaviour:
     m_Flags: 0
   BombPrefab: {fileID: 9054351398392940397, guid: b412bfbc2b7b38740a2376cbc2d0d836,
     type: 3}
-  keys: 00000000000000000000000000000000
   gamePadIndex: 0
   acceleration: {x: 0, y: 0, z: 0}
   speedBoostUntil: 0
   invincibleUntil: 0
   speedBoostMultiplier: 1.5
   bombPlaced: 0
+  dashForce: 28
+  dashCooldown: 2
+  shieldDuration: 1.5
+  shieldCooldown: 4
+  shieldReflectForce: 18
+  shieldActive: 0
+  tauntCooldown: 3
   doubleScoreUntil: 0
   aiDecisionInterval: 0.2
   aiBombDecisionInterval: 0.3
