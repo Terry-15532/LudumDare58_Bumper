@@ -56,6 +56,8 @@ public class Game : MonoBehaviour {
             return;
         }
         _instance = this;
+        
+        Cursor.lockState = CursorLockMode.Locked;
 
         var cloned = Instantiate(input).FindActionMap("UIActionMap");
         leftAction = cloned.FindAction("Left");
