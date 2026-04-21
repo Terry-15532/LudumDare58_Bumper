@@ -2,6 +2,12 @@
 //   1. Project Settings → Player → Api Compatibility Level = .NET Framework
 //   2. Add  SERIAL_NFC  to Project Settings → Player → Scripting Define Symbols
 // Without that define the component still works in Editor via F1/F2 simulation.
+//
+// Protocol (matches Arduino/NFCReader/NFCReader.ino):
+//   - Serial, 9600 baud.
+//   - Each swipe is one line:  "UID:xx:xx:xx:xx[:xx:xx:xx]"
+//   - Lines starting with '#' are diagnostic; ignored here.
+//   - Unity side is responsible for slot assignment and profile lookup.
 
 #if SERIAL_NFC
 using System.IO.Ports;
@@ -12,12 +18,8 @@ using UnityEngine;
 public class NFCReader : MonoBehaviour {
 
     [Header("Serial Port")]
-    public string portName = "COM3";
+    public string portName = "COM8";
     public int    baudRate = 9600;
-
-    [Header("State")]
-    public bool blueReady = false;
-    public bool redReady  = false;
 
 #if SERIAL_NFC
     SerialPort _port;
@@ -47,9 +49,10 @@ public class NFCReader : MonoBehaviour {
     void ReadLoop() {
         while (_running && _port != null && _port.IsOpen) {
             try {
-                string line = _port.ReadLine().Trim().ToUpper();
-                if (line == "BLUE" || line == "RED") {
-                    lock (_lock) { _pending = line; }
+                string line = _port.ReadLine().Trim();
+                if (string.IsNullOrEmpty(line) || line.StartsWith("#")) continue;
+                if (line.StartsWith("UID:", System.StringComparison.OrdinalIgnoreCase)) {
+                    lock (_lock) { _pending = line.Substring(4).ToUpper(); }
                 }
             }
             catch (System.TimeoutException) { }
@@ -69,35 +72,32 @@ public class NFCReader : MonoBehaviour {
     }
 #endif
 
-    void HandleSwipe(string side) {
+    // `uid` is the normalized hex form, e.g. "04:64:57:52:5D:6F:80"
+    void HandleSwipe(string uid) {
+        if (string.IsNullOrEmpty(uid)) return;
+
         if (!Game.instance.nfcMode && !Game.instance.matchStarted) {
             Game.instance.EnterNFCMode();
         }
         if (!Game.instance.nfcMode) return;
 
-        if (side == "BLUE" && !blueReady) {
-            blueReady = true;
-            Debug.Log("[NFCReader] Blue ready");
-            Game.instance.NFCPlayerReady(PlayerSide.Blue);
-        }
-        else if (side == "RED" && !redReady) {
-            redReady = true;
-            Debug.Log("[NFCReader] Red ready");
-            Game.instance.NFCPlayerReady(PlayerSide.Red);
-        }
-
-        if (blueReady && redReady) {
-            blueReady = redReady = false;
-            Game.instance.NFCStartMatch();
-            Debug.Log("[NFCReader] Both players ready — match started");
-        }
+        Debug.Log($"[NFCReader] Swipe UID={uid}");
+        Game.instance.OnNFCSwipe(uid);
     }
 
 #if UNITY_EDITOR
-    // Editor: F1 = simulate blue swipe, F2 = simulate red swipe
+    // Editor: F1 / F2 simulate two distinct dummy cards.
+    // Useful for testing without hardware.
+    const string FakeUidA = "E4:D1:0A:55";
+    const string FakeUidB = "7B:2C:9F:31";
     void LateUpdate() {
-        if (Input.GetKeyDown(KeyCode.F1)) HandleSwipe("BLUE");
-        if (Input.GetKeyDown(KeyCode.F2)) HandleSwipe("RED");
+        if (Input.GetKeyDown(KeyCode.F1)) HandleSwipe(FakeUidA);
+        if (Input.GetKeyDown(KeyCode.F2)) HandleSwipe(FakeUidB);
+        // F3 swipes a random fresh UID — good for exercising the "new player" flow.
+        if (Input.GetKeyDown(KeyCode.F3)) {
+            string random = $"{Random.Range(0, 256):X2}:{Random.Range(0, 256):X2}:{Random.Range(0, 256):X2}:{Random.Range(0, 256):X2}";
+            HandleSwipe(random);
+        }
     }
 #endif
 }

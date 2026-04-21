@@ -29,6 +29,11 @@ public class PlayerController : MonoBehaviour {
     public Rigidbody rb;
     public MeshRenderer mr;
 
+    // Populated by Game.NFCStartMatch when a match begins via NFC.
+    // Empty strings in keyboard / AI mode — UI should fall back to the side label.
+    [System.NonSerialized] public string profileUid  = "";
+    [System.NonSerialized] public string profileName = "";
+
     public GameObject BombPrefab;
 
     // keys[0-3]: up/down/left/right  [4]: bomb  [5]: dash  [6]: shield  [7]: taunt

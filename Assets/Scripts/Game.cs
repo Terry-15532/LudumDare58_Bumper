@@ -71,6 +71,10 @@ public class Game : MonoBehaviour {
     public void Reset(){
         playerBlue.ResetPosition();
         playerRed.ResetPosition();
+        // Profile fields get re-populated by NFCStartMatch; clear so non-NFC
+        // starts don't carry over a stale name from the previous match.
+        playerBlue.profileUid = playerBlue.profileName = "";
+        playerRed.profileUid  = playerRed.profileName  = "";
         _instance = this;
         scores = Vector2.zero;
         timer = maxTime;
@@ -147,15 +151,49 @@ public class Game : MonoBehaviour {
         tmp.fontSize = size;
         tmp.color = color;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
         tmp.richText = true;
         return tmp;
     }
 
     public void Start(){
         BuildNFCUI();
+        BuildMatchNameLabels();
         nfcReader = gameObject.AddComponent<NFCReader>();
         Reset();
+    }
+
+    // ── Match scoreboard name labels (code-created, sit above each score) ───
+    TextMeshProUGUI _blueNameLabel, _redNameLabel;
+
+    void BuildMatchNameLabels() {
+        if (scoreTextBlue) _blueNameLabel = CreateNameLabel(scoreTextBlue, "BLUE");
+        if (scoreTextRed)  _redNameLabel  = CreateNameLabel(scoreTextRed,  "RED");
+    }
+
+    TextMeshProUGUI CreateNameLabel(TextMeshProUGUI anchor, string fallback) {
+        if (anchor == null) return null;
+        var go = new GameObject(anchor.name + "_Name");
+        go.transform.SetParent(anchor.transform, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.sizeDelta = new Vector2(500, 40);
+        rect.anchoredPosition = new Vector2(0, 8);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.font = anchor.font;
+        if (anchor.fontSharedMaterial) tmp.fontSharedMaterial = anchor.fontSharedMaterial;
+        tmp.fontSize  = Mathf.Max(18f, anchor.fontSize * 0.35f);
+        tmp.color     = anchor.color;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.text = fallback;
+        return tmp;
+    }
+
+    void RefreshMatchNameLabels() {
+        if (_blueNameLabel) _blueNameLabel.text = string.IsNullOrEmpty(playerBlue.profileName) ? "BLUE" : playerBlue.profileName;
+        if (_redNameLabel)  _redNameLabel.text  = string.IsNullOrEmpty(playerRed.profileName)  ? "RED"  : playerRed.profileName;
     }
 
     public NFCReader nfcReader;
@@ -197,6 +235,7 @@ public class Game : MonoBehaviour {
 
     public void StartMatch(){
         Reset();
+        RefreshMatchNameLabels();
         mainMenuUI.SetActive(false);
         beforeMatchUI.SetActive(true);
         coin.SetActive(false);
@@ -264,12 +303,14 @@ public class Game : MonoBehaviour {
     public void EndMatch(){
         SoundSys.PlaySound("Cheer", volume: 0.15f).audioSource.volume = 0.1f;
         mainVirtualCamera.Follow = cameraDefaultTarget.transform;
-        if (scores.x > scores.y) {
+        bool blueWon = scores.x > scores.y;
+        bool redWon  = scores.y > scores.x;
+        if (blueWon) {
             blueWinUI.SetActive(true);
             redWinUI.SetActive(false);
             drawUI.SetActive(false);
         }
-        else if (scores.y > scores.x) {
+        else if (redWon) {
             blueWinUI.SetActive(false);
             redWinUI.SetActive(true);
             drawUI.SetActive(false);
@@ -279,6 +320,11 @@ public class Game : MonoBehaviour {
             blueWinUI.SetActive(false);
             redWinUI.SetActive(false);
         }
+        // Stats tracking — only counts matches that started via NFC (non-empty uid).
+        if (!string.IsNullOrEmpty(playerBlue.profileUid))
+            ArcadeProfileManager.RecordMatchResult(playerBlue.profileUid, blueWon);
+        if (!string.IsNullOrEmpty(playerRed.profileUid))
+            ArcadeProfileManager.RecordMatchResult(playerRed.profileUid, redWon);
         matchRunning = false;
 
         playerBlue.gameObject.SetActive(true);
@@ -325,6 +371,22 @@ public class Game : MonoBehaviour {
     // ── NFC selection flow ────────────────────────────────────────────────
     public bool nfcMode = false;
 
+    public enum NfcSlotState { Empty, PendingNewPlayer, Ready }
+    public class NfcSlot {
+        public NfcSlotState state = NfcSlotState.Empty;
+        public string uid;
+        public string name;
+        public bool   isNewPlayer;
+        public void Clear() {
+            state = NfcSlotState.Empty;
+            uid = null;
+            name = null;
+            isNewPlayer = false;
+        }
+    }
+
+    public NfcSlot blueSlot = new(), redSlot = new();
+
     public void EnterNFCMode() {
         Reset();
         mainMenuUI.SetActive(false);
@@ -334,31 +396,131 @@ public class Game : MonoBehaviour {
         playerBlue.gameObject.SetActive(true);
         playerRed.gameObject.SetActive(true);
 
-        // Reset labels
-        _nfcBlueLabel.text = "BLUE\n<size=36><color=#666>WAITING...</color></size>";
-        _nfcRedLabel.text  = "RED\n<size=36><color=#666>WAITING...</color></size>";
-        _nfcTitle.text     = "SWIPE TO JOIN";
-        _nfcTitle.color    = Color.white;
+        blueSlot.Clear();
+        redSlot.Clear();
+
+        _nfcTitle.text  = "SWIPE TO JOIN";
+        _nfcTitle.color = Color.white;
+        RebuildNFCLabels();
         _nfcRoot.SetActive(true);
     }
 
-    public void NFCPlayerReady(PlayerSide side) {
+    // Invoked by NFCReader on every (debounced) card swipe. Unity side does the
+    // slot assignment, profile lookup, and new-player registration here.
+    public void OnNFCSwipe(string uid) {
+        if (!nfcMode || string.IsNullOrEmpty(uid)) return;
+
+        // Already assigned to a slot? Ignore — let the player confirm/reroll.
+        if (blueSlot.uid == uid || redSlot.uid == uid) return;
+
+        NfcSlot target = blueSlot.state == NfcSlotState.Empty ? blueSlot
+                       : redSlot.state  == NfcSlotState.Empty ? redSlot
+                       : null;
+        if (target == null) return; // both already filled
+
+        PlayerSide side = (target == blueSlot) ? PlayerSide.Blue : PlayerSide.Red;
+        target.uid = uid;
+
+        var profile = ArcadeProfileManager.Get(uid);
+        if (profile != null) {
+            target.state       = NfcSlotState.Ready;
+            target.name        = profile.name;
+            target.isNewPlayer = false;
+            NFCPlayerReadyFX(side);
+            MaybeStart();
+        }
+        else {
+            target.state       = NfcSlotState.PendingNewPlayer;
+            target.name        = NameGenerator.Roll();
+            target.isNewPlayer = true;
+            NFCSwipeFX(side); // gentle feedback; big flash only on confirm
+        }
+        RebuildNFCLabels();
+    }
+
+    // Player-specific key presses during NFC mode: confirm (bomb key) and reroll (dash key).
+    public void TryConfirmNewPlayer(PlayerSide side) {
+        NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
+        if (slot.state != NfcSlotState.PendingNewPlayer) return;
+
+        ArcadeProfileManager.Register(slot.uid, slot.name);
+        slot.state       = NfcSlotState.Ready;
+        slot.isNewPlayer = false;
+        NFCPlayerReadyFX(side);
+        RebuildNFCLabels();
+        MaybeStart();
+    }
+
+    public void TryRerollNewPlayer(PlayerSide side) {
+        NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
+        if (slot.state != NfcSlotState.PendingNewPlayer) return;
+
+        slot.name = NameGenerator.Roll();
+        var s = SoundSys.PlaySound("Coins");
+        if (s != null) s.audioSource.volume = 0.35f;
+        RebuildNFCLabels();
+    }
+
+    void MaybeStart() {
+        if (blueSlot.state == NfcSlotState.Ready && redSlot.state == NfcSlotState.Ready) {
+            NFCStartMatch();
+        }
+    }
+
+    void RebuildNFCLabels() {
+        _nfcBlueLabel.text = BuildSlotText("BLUE", blueSlot, "#55AAFF");
+        _nfcRedLabel.text  = BuildSlotText("RED",  redSlot,  "#FF5555");
+    }
+
+    static string BuildSlotText(string header, NfcSlot slot, string colorHex) {
+        switch (slot.state) {
+            case NfcSlotState.Empty:
+                return $"{header}\n<size=36><color=#666>WAITING...</color></size>";
+            case NfcSlotState.PendingNewPlayer:
+                return $"{header}\n<size=40>{slot.name}</size>\n" +
+                       $"<size=26><color=#FFCC55>NEW PLAYER</color></size>\n" +
+                       $"<size=22><color={colorHex}>[BOMB] CONFIRM  [DASH] REROLL</color></size>";
+            case NfcSlotState.Ready:
+                return $"{header}\n<size=40>{slot.name}</size>\n" +
+                       $"<size=28><color={colorHex}>READY!</color></size>";
+        }
+        return header;
+    }
+
+    // Kept as a public entry point for legacy callers / manual debug flashes.
+    public void NFCPlayerReady(PlayerSide side) => NFCPlayerReadyFX(side);
+
+    void NFCPlayerReadyFX(PlayerSide side) {
         if (!nfcMode) return;
         if (side == PlayerSide.Blue) {
-            _nfcBlueLabel.text = "BLUE\n<size=36><color=#55AAFF>READY!</color></size>";
             BlinkScreen(BlinkSide.Left);
             SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
             CameraShake.Shake(0.25f, 0.15f);
             playerBlue.SetSmokeIntensitySmooth(1.5f, 0.1f);
             Tools.CallDelayed(() => playerBlue.SetSmokeIntensitySmooth(0f, 0.3f), 0.3f);
         } else {
-            _nfcRedLabel.text = "RED\n<size=36><color=#FF5555>READY!</color></size>";
             BlinkScreen(BlinkSide.Right);
             SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
             CameraShake.Shake(0.25f, 0.15f);
             playerRed.SetSmokeIntensitySmooth(1.5f, 0.1f);
             Tools.CallDelayed(() => playerRed.SetSmokeIntensitySmooth(0f, 0.3f), 0.3f);
         }
+    }
+
+    // Small swipe-acknowledgement flash (used when a new card is first detected
+    // but the player hasn't confirmed the rolled name yet).
+    void NFCSwipeFX(PlayerSide side) {
+        if (side == PlayerSide.Blue) {
+            BlinkScreen(BlinkSide.Left);
+            playerBlue.SetSmokeIntensitySmooth(0.8f, 0.1f);
+            Tools.CallDelayed(() => playerBlue.SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+        } else {
+            BlinkScreen(BlinkSide.Right);
+            playerRed.SetSmokeIntensitySmooth(0.8f, 0.1f);
+            Tools.CallDelayed(() => playerRed.SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+        }
+        var s = SoundSys.PlaySound("Coins");
+        if (s != null) s.audioSource.volume = 0.3f;
     }
 
     public void NFCStartMatch() {
@@ -379,7 +541,17 @@ public class Game : MonoBehaviour {
             playerRed.device  = PlayerControlDevice.Keyboard;
             playerBlue.Init();
             playerRed.Init();
+
+            // StartMatch → Reset clears profile fields, so assign after and
+            // refresh the scoreboard labels to reflect the NFC-chosen names.
+            string blueUid = blueSlot.uid, blueName = blueSlot.name;
+            string redUid  = redSlot.uid,  redName  = redSlot.name;
             StartMatch();
+            playerBlue.profileUid  = blueUid;
+            playerBlue.profileName = blueName;
+            playerRed.profileUid   = redUid;
+            playerRed.profileName  = redName;
+            RefreshMatchNameLabels();
         }, 0.6f);
     }
 
@@ -396,7 +568,14 @@ public class Game : MonoBehaviour {
             if (Input.GetKeyDown(KeyCode.Escape)) {
                 nfcMode = false;
                 Reset();
+                return;
             }
+            // Each side uses its own bomb key (confirm) / dash key (reroll) while
+            // the slot is in PendingNewPlayer state. Indexes match PlayerController.keys.
+            if (Input.GetKeyDown(PlayerController.blueKeys[4])) TryConfirmNewPlayer(PlayerSide.Blue);
+            if (Input.GetKeyDown(PlayerController.blueKeys[5])) TryRerollNewPlayer(PlayerSide.Blue);
+            if (Input.GetKeyDown(PlayerController.redKeys[4]))  TryConfirmNewPlayer(PlayerSide.Red);
+            if (Input.GetKeyDown(PlayerController.redKeys[5]))  TryRerollNewPlayer(PlayerSide.Red);
             return;
         }
         if (matchStarted) {
@@ -443,9 +622,6 @@ public class Game : MonoBehaviour {
                 playerRed.Init();
                 StartMatch();
             }
-        }
-        else if (Input.GetKeyDown(KeyCode.N) && !selectedSingleMode) {
-            EnterNFCMode();
         }
         else if (Input.GetKeyDown(KeyCode.F) && selectedSingleMode) {
             playerRed.device = PlayerControlDevice.AI;
