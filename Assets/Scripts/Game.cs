@@ -178,15 +178,17 @@ public class Game : MonoBehaviour {
         var rect = go.AddComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 0f);
-        rect.sizeDelta = new Vector2(500, 40);
-        rect.anchoredPosition = new Vector2(0, 8);
+        rect.sizeDelta = new Vector2(700, 90);
+        rect.anchoredPosition = new Vector2(0, 10);
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.font = anchor.font;
         if (anchor.fontSharedMaterial) tmp.fontSharedMaterial = anchor.fontSharedMaterial;
-        tmp.fontSize  = Mathf.Max(18f, anchor.fontSize * 0.35f);
         tmp.color     = anchor.color;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.enableAutoSizing = true;
+        tmp.fontSizeMin = 40f;
+        tmp.fontSizeMax = 90f;
         tmp.text = fallback;
         return tmp;
     }
