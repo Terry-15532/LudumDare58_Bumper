@@ -5949,6 +5949,7 @@ GameObject:
   - component: {fileID: 1037342718}
   - component: {fileID: 1037342720}
   - component: {fileID: 1037342721}
+  - component: {fileID: 1037342722}
   m_Layer: 0
   m_Name: Coin
   m_TagString: Untagged
@@ -6046,9 +6047,11 @@ MonoBehaviour:
   startY: 2.5
   amplitude: 0.15
   requireMouseButton: 0
-  moveSensitivity: -1
-  maxSpeed: 15
-  decay: 3
+  useRigidbodyMovement: 1
+  forceSensitivity: -10
+  forceMode: 5
+  maxSpeed: 10
+  linearDrag: 1
   boundsX: {x: -12, y: 12}
   boundsZ: {x: -8, y: 6.5}
 --- !u!135 &1037342721
@@ -6072,6 +6075,33 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.99039257
   m_Center: {x: 0.000000029802322, y: -8.881784e-16, z: -3.5527137e-15}
+--- !u!54 &1037342722
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037342716}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &1040170624
 GameObject:
   m_ObjectHideFlags: 0
