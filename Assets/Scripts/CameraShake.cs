@@ -1,31 +1,36 @@
-// using System.Collections;
-// using Unity.Cinemachine;
-// using UnityEngine;
-//
-// public class CameraShake{
-//     public static CinemachineCamera camera;
-//     public static CinemachinePositionComposer transposer;
-//     public static Coroutine cameraShakeAni;
-//
-//
-//     public static void Shake(Transform t, Vector2 dir, float intensity = 1, float frequency = 0.3f, float duration = 0.3f){
-//         if (!camera){
-//             camera = Game.instance.mainVirtualCamera;
-//             transposer = camera.GetComponent<CinemachinePositionComposer>();
-//         }
-//         if (cameraShakeAni != null){
-//             Tools.callDelayedHelper.StopCoroutine(cameraShakeAni);
-//         }
-//         cameraShakeAni = Tools.callDelayedHelper.StartCoroutine(ShakeCamera(t, dir, intensity * Settings.data.cameraShakeIntensity, frequency, duration));
-//     }
-//
-//     public static IEnumerator ShakeCamera(Transform t, Vector2 dir, float intensity, float frq, float duration){
-//         float dt = 0;
-//         while (dt < duration){
-//             dt += Time.deltaTime * Time.timeScale;
-//             transposer.TargetOffset = Quaternion.Euler(new Vector3(0, 0, -t.eulerAngles.z)) * dir * (intensity * Mathf.Sin(dt * frq * Mathf.PI));
-//             yield return new WaitForEndOfFrame();
-//         }
-//         transposer.TargetOffset = Vector3.zero;
-//     }
-// }
+using System.Collections;
+using Unity.Cinemachine;
+using UnityEngine;
+
+public static class CameraShake {
+    static CinemachineCamera _camera;
+    static CinemachinePositionComposer _composer;
+    static Coroutine _shakeRoutine;
+
+    static void EnsureRefs() {
+        if (_camera) return;
+        _camera   = Game.instance.mainVirtualCamera;
+        _composer = _camera.GetComponent<CinemachinePositionComposer>();
+    }
+
+    public static void Shake(float intensity = 0.4f, float duration = 0.25f, float frequency = 18f) {
+        EnsureRefs();
+        if (_shakeRoutine != null)
+            Tools.callDelayedHelper.StopCoroutine(_shakeRoutine);
+        _shakeRoutine = Tools.callDelayedHelper.StartCoroutine(
+            DoShake(intensity * Settings.data.cameraShakeIntensity, duration, frequency));
+    }
+
+    static IEnumerator DoShake(float intensity, float duration, float frequency) {
+        float elapsed = 0f;
+        while (elapsed < duration) {
+            elapsed += Time.unscaledDeltaTime;
+            float falloff = 1f - (elapsed / duration);
+            float ox = Mathf.Sin(elapsed * frequency)        * intensity * falloff;
+            float oy = Mathf.Sin(elapsed * frequency * 1.3f) * intensity * falloff;
+            _composer.TargetOffset = new Vector3(ox, oy, 0f);
+            yield return null;
+        }
+        _composer.TargetOffset = Vector3.zero;
+    }
+}

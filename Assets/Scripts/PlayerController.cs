@@ -3,17 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
 using UnityEngine.Serialization;
+using UnityEngine.XR;
+using InputDevice = UnityEngine.InputSystem.InputDevice;
 
 public enum PlayerControlDevice {
     Keyboard,
-    Joystick,
+    Gamepad,
     AI
 }
 
 public enum PlayerSide {
-    Blue,
-    Red
+    Blue = 0,
+    Red = 1
 }
 
 public class PlayerController : MonoBehaviour {
@@ -29,19 +33,23 @@ public class PlayerController : MonoBehaviour {
     public Rigidbody rb;
     public MeshRenderer mr;
 
+    // public InputActionMap inputMap;
+    public InputActionAsset input;
+    public InputAction movement, placeBomb, dash, shield, taunt;
+    public InputAction trackball;
+
     public GameObject BombPrefab;
 
-    public KeyCode[] keys = new KeyCode[5];//up, down, left, right, skill
 
 
-    public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
+    static readonly Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
-    public static KeyCode[] blueKeys = {
-        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space
-    };
-    public static KeyCode[] redKeys = {
-        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return
-    };
+    // public static KeyCode[] blueKeys = {
+    //     KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space
+    // };
+    // public static KeyCode[] redKeys = {
+    //     KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return
+    // };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
 
@@ -71,8 +79,15 @@ public class PlayerController : MonoBehaviour {
         speedBoostUntil = 0f;
         invincibleUntil = 0f;
         doubleScoreUntil = 0f;
+        dashCooldownLeft = 0f;
+        shieldCooldownLeft = 0f;
+        shieldActive = false;
+        shieldActiveLeft = 0f;
+        tauntCooldownLeft = 0f;
         if (rb != null) rb.mass = baseMass;
     }
+
+    public int gamePadIndex;
 
     public void Awake(){
         Init();
@@ -95,7 +110,8 @@ public class PlayerController : MonoBehaviour {
     public void Init(){
         // mr = player.GetComponentInChildren<MeshRenderer>();
         rb = player.GetComponent<Rigidbody>();
-        keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // input.SwitchCurrentActionMap(side == PlayerSide.Blue ? "BluePlayer" : "RedPlayer");
         baseAcc = acc;
         baseMaxSpeed = maxSpeed;
         baseMass = rb.mass;
@@ -105,6 +121,31 @@ public class PlayerController : MonoBehaviour {
             originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+
+        if (device == PlayerControlDevice.Gamepad) {
+            // input.user.UnpairDevices();
+            // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
+            Gamepad pad = Gamepad.all[gamePadIndex];
+            var cloned = Instantiate(input).FindActionMap("PlayerMovement");
+            movement = cloned.FindAction("Movement");
+            placeBomb = cloned.FindAction("PlaceBomb");
+            dash = cloned.FindAction("Dash");
+            shield = cloned.FindAction("Shield");
+            // taunt = cloned.FindAction("Taunt");
+            trackball = cloned.FindAction("Trackball");
+            // foreach (var action in cloned.actionMaps) {
+            //     action.ApplyBindingOverride(new InputBinding() {
+            //         overrideInteractions = "",
+            //         groups = "Gamepad"
+            //     });
+            // }
+            // InputSystem.AddDevice(pad);
+            cloned.devices = new[] {
+                pad, (InputDevice)Keyboard.current
+            };
+            cloned.Enable();
+        }
+
     }
 
     static readonly int buffColorId = Shader.PropertyToID("_Color");
@@ -202,6 +243,23 @@ public class PlayerController : MonoBehaviour {
 
     public bool bombPlaced = false;
 
+    // ── Dash ──────────────────────────────────────────────────────────────
+    public float dashForce = 28f;
+    public float dashCooldown = 2f;
+    float dashCooldownLeft = 0f;
+
+    // ── Shield ────────────────────────────────────────────────────────────
+    public float shieldDuration = 1.5f;
+    public float shieldCooldown = 4f;
+    public float shieldReflectForce = 18f;
+    float shieldCooldownLeft = 0f;
+    public bool shieldActive = false;
+    float shieldActiveLeft = 0f;
+
+    // ── Taunt ─────────────────────────────────────────────────────────────
+    public float tauntCooldown = 3f;
+    float tauntCooldownLeft = 0f;
+
     public float doubleScoreUntil = 0f;
 
     void LateUpdate(){
@@ -218,28 +276,70 @@ public class PlayerController : MonoBehaviour {
     private float aiBombDecisionTimer = 0f;
 
     void Update(){
-        if (device == PlayerControlDevice.Keyboard) {
-            direction = Vector3.zero;
-            if (Input.GetKey(keys[0])) {
-                direction -= Vector3.forward;
-            }
-            if (Input.GetKey(keys[1])) {
-                direction -= Vector3.back;
-            }
-            if (Input.GetKey(keys[2])) {
-                direction -= Vector3.left;
-            }
-            if (Input.GetKey(keys[3])) {
-                direction -= Vector3.right;
-            }
-            if (!bombPlaced && Input.GetKeyDown(keys[4]) && Game.instance.matchRunning) {
+        // Cooldown timers (unscaled so they tick during pause-exempt moments, scaled otherwise)
+        dashCooldownLeft = Mathf.Max(0, dashCooldownLeft - Time.deltaTime);
+        shieldCooldownLeft = Mathf.Max(0, shieldCooldownLeft - Time.deltaTime);
+        tauntCooldownLeft = Mathf.Max(0, tauntCooldownLeft - Time.deltaTime);
+
+        // Shield active timer
+        if (shieldActive) {
+            shieldActiveLeft -= Time.deltaTime;
+            if (shieldActiveLeft <= 0f) shieldActive = false;
+        }
+
+        // if (device == PlayerControlDevice.Keyboard) {
+        //     direction = Vector3.zero;
+        //     if (Input.GetKey(keys[0])) direction -= Vector3.forward;
+        //     if (Input.GetKey(keys[1])) direction -= Vector3.back;
+        //     if (Input.GetKey(keys[2])) direction -= Vector3.left;
+        //     if (Input.GetKey(keys[3])) direction -= Vector3.right;
+        //
+        //     if (!Game.instance.matchRunning) return;
+        //
+        //     // Bomb
+        //     if (!bombPlaced && Input.GetKeyDown(keys[4])) {
+        //         Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
+        //         bombPlaced = true;
+        //     }
+        //     // Dash
+        //     if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
+        //         PerformDash();
+        //     }
+        //     // Shield
+        //     if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
+        //         ActivateShield();
+        //     }
+        //     // Taunt
+        //     if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
+        //         PerformTaunt();
+        //     }
+        // }
+        if (device == PlayerControlDevice.Gamepad) {
+            var v = movement.ReadValue<Vector2>();
+            // Debug.Log("Side: " + side + ", " + v);
+            direction = new Vector3(-v.x, 0, -v.y);
+            if (!bombPlaced && placeBomb.WasPressedThisFrame() && Game.instance.matchRunning) {
                 Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                 bombPlaced = true;
             }
+
+            if (!bombPlaced && dash.WasPressedThisFrame() && Game.instance.matchRunning) {
+                PerformDash();
+            }
+
+            if (!bombPlaced && shield.WasPressedThisFrame() && Game.instance.matchRunning) {
+                ActivateShield();
+            }
+
+            if (!bombPlaced && taunt.WasPressedThisFrame() && Game.instance.matchRunning) {
+                PerformTaunt();
+            }
+
             if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
         }
+
     }
 
     void FixedUpdate(){
@@ -252,7 +352,7 @@ public class PlayerController : MonoBehaviour {
             CalculateAcc();
             UpdateHeadAnimation();
 
-            if (device == PlayerControlDevice.Keyboard) {
+            if (device == PlayerControlDevice.Keyboard || device == PlayerControlDevice.Gamepad) {
                 rb.AddForce(direction.normalized * acc, ForceMode.Acceleration);
             }
             else if (device == PlayerControlDevice.AI) {
@@ -339,18 +439,101 @@ public class PlayerController : MonoBehaviour {
     //     rb.angularVelocity = Vector3.zero;
     // }
 
+    // ── Dash ──────────────────────────────────────────────────────────────
+    public void PerformDash(){
+        // Dash towards the opponent; fall back to movement direction or forward
+        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+        Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
+        toOpponent.y = 0;
+        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+        rb.linearVelocity = d * dashForce;
+        dashCooldownLeft = dashCooldown;
+
+        SoundSys.PlaySound("Hit").audioSource.volume = 0.5f;
+        CameraShake.Shake(0.35f, 0.18f);
+
+        // Smoke burst
+        SetSmokeIntensitySmooth(2.5f, 0.05f);
+        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+
+        // Outline flash in player color
+        var dashColor = side == PlayerSide.Blue
+            ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
+            : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
+        mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
+        Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+
+        // Screen blink on own side
+        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+    }
+
+    // ── Shield ────────────────────────────────────────────────────────────
+    public void ActivateShield(){
+        shieldActive = true;
+        shieldActiveLeft = shieldDuration;
+        shieldCooldownLeft = shieldCooldown;
+
+        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
+
+        // Force UpdateBuffs to re-evaluate on next frame
+        lastBuffVisual = BuffVisual.None;
+
+        // Cyan glow
+        var mats = mr.materials;
+        foreach (var m in mats) m.SetColor(buffColorId, new Color(0.2f, 2f, 2f));
+
+        // Cyan outline
+        mr.materials[0].SetVector(Wall.outerColorIndex, new Vector4(0.2f, 1.5f, 2f, 1) * 8f);
+
+        // Smoke burst
+        SetSmokeIntensitySmooth(1.8f, 0.08f);
+        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0.4f, 0.3f), 0.15f);
+
+        // Screen blink
+        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+
+        // When shield expires, clean up and let UpdateBuffs restore correct color
+        Tools.CallDelayed(() => {
+            if (!shieldActive) {
+                mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero);
+                SetSmokeIntensitySmooth(0f, 0.3f);
+                lastBuffVisual = BuffVisual.None;
+            }
+        }, shieldDuration);
+    }
+
+    // ── Taunt ─────────────────────────────────────────────────────────────
+    public void PerformTaunt(){
+        tauntCooldownLeft = tauntCooldown;
+        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+
+        SoundSys.PlaySound("Taunt _Robotic Voice").audioSource.volume = 0.5f;
+
+        // Smoke puff on opponent only
+        opponent.SetSmokeIntensitySmooth(1.2f, 0.1f);
+        Tools.CallDelayed(() => opponent.SetSmokeIntensitySmooth(0f, 0.4f), 0.3f);
+
+        // Triple-flash opponent's screen side
+        BlinkSide oppBlink = side == PlayerSide.Blue ? BlinkSide.Right : BlinkSide.Left;
+        Game.instance.BlinkScreen(oppBlink);
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.15f);
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.30f);
+
+        // Fullscreen blink finale
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(BlinkSide.Fullscreen), 0.45f);
+
+        // Camera nudge
+        CameraShake.Shake(0.2f, 0.12f);
+    }
+
     public void OnTriggerEnter(Collider other){
         if (other.gameObject.CompareTag("DeathZone")) {
             Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
             gameObject.SetActive(false);
             ResetPosition();
             SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
-            Tools.CallDelayed(() => {
-                gameObject.SetActive(true);
-            }, 1f);
-            // Tools.CallDelayed(() => {
-            //     gameObject.SetActive(true);
-            // }, 0.3f);
+            CameraShake.Shake(0.8f, 0.35f);
+            Tools.CallDelayed(() => { gameObject.SetActive(true); }, 1f);
         }
         else if (other.gameObject.name == "Coin") {
             other.gameObject.GetComponent<Coin>().ChangePosition();
@@ -359,17 +542,46 @@ public class PlayerController : MonoBehaviour {
         }
         else {
             var pickup = other.GetComponentInParent<PickupBase>();
-            if (pickup != null) {
-                pickup.OnPickup(this);
-            }
+            if (pickup != null) pickup.OnPickup(this);
         }
     }
 
     public void OnCollisionEnter(Collision collision){
         if (!collision.gameObject.CompareTag("Floor")) {
-            mr.materials[0].SetVector(Wall.outerColorIndex, side == PlayerSide.Blue ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
+            mr.materials[0].SetVector(Wall.outerColorIndex,
+                side == PlayerSide.Blue
+                    ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f
+                    : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
             Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.1f);
-            // CameraShake.Shake(player.transform, collision.GetContact(0).normal, 1f, 0.3f, 0.2f);
+            CameraShake.Shake(0.25f, 0.18f);
+        }
+
+        // Shield reflect: push the colliding player away
+        if (shieldActive && collision.gameObject.CompareTag("Player")) {
+            var other = collision.gameObject.GetComponent<PlayerController>()
+                ?? collision.gameObject.GetComponentInParent<PlayerController>();
+            if (other != null && other != this) {
+                Vector3 dir = (other.player.transform.position - player.transform.position).normalized;
+                dir.y = 0;
+                other.rb.AddForce(dir * shieldReflectForce, ForceMode.Impulse);
+
+                SoundSys.PlaySound("Explosion").audioSource.volume = 0.3f;
+                CameraShake.Shake(0.6f, 0.25f);
+
+                // Smoke burst on both players
+                SetSmokeIntensitySmooth(2f, 0.05f);
+                Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.2f), 0.15f);
+                other.SetSmokeIntensitySmooth(1.5f, 0.05f);
+                Tools.CallDelayed(() => other.SetSmokeIntensitySmooth(0f, 0.2f), 0.15f);
+
+                // Outline flash on the reflected player
+                var reflectColor = new Vector4(0.2f, 1.5f, 2f, 1) * 10f;
+                other.mr.materials[0].SetVector(Wall.outerColorIndex, reflectColor);
+                Tools.CallDelayed(() => other.mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+
+                // Fullscreen blink
+                Game.instance.BlinkScreen(BlinkSide.Fullscreen);
+            }
         }
         if (collision.gameObject.CompareTag("Wall")) {
             Wall wall = collision.gameObject.GetComponent<Wall>();

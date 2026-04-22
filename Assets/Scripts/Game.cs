@@ -5,8 +5,11 @@ using System.Linq;
 using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public enum BlinkSide {
     Left,
@@ -33,6 +36,9 @@ public class Game : MonoBehaviour {
     public List<Wall> walls = new List<Wall>();
     public GameObject cameraDefaultTarget, playerCombinedTarget;
 
+    public InputActionAsset input;
+    public InputAction leftAction, rightAction, selectAction, escapeAction, nfcAction;
+
     public CinemachineCamera mainVirtualCamera;
     public bool matchStarted = false, matchRunning = false;
 
@@ -50,6 +56,20 @@ public class Game : MonoBehaviour {
             return;
         }
         _instance = this;
+        
+        Cursor.lockState = CursorLockMode.Locked;
+
+        var cloned = Instantiate(input).FindActionMap("UIActionMap");
+        leftAction = cloned.FindAction("Left");
+        rightAction = cloned.FindAction("Right");
+        selectAction = cloned.FindAction("Select");
+        escapeAction = cloned.FindAction("Escape");
+        nfcAction = cloned.FindAction("NFC");
+        cloned.devices = new[] {
+            Gamepad.all[0], Gamepad.all[1], (InputDevice)Keyboard.current
+        };
+        cloned.Enable();
+
     }
 
     public void BlinkScreen(BlinkSide side){
@@ -86,12 +106,78 @@ public class Game : MonoBehaviour {
         matchRunning = false;
         selectedSingleMode = false;
         difficultyUI.SetActive(false);
+        if (_nfcRoot) _nfcRoot.SetActive(false);
         Time.timeScale = 1f;
     }
 
+    // ── NFC UI (code-created) ─────────────────────────────────────────────
+    GameObject _nfcRoot;
+    TextMeshProUGUI _nfcTitle, _nfcBlueLabel, _nfcRedLabel;
+
+    void BuildNFCUI(){
+        // Parent to the same canvas as the other UI panels
+        Transform canvas = beforeMatchUI.transform.parent;
+
+        // Root panel — full-screen overlay, same as beforeMatchUI
+        _nfcRoot = new GameObject("NFC_UI");
+        _nfcRoot.transform.SetParent(canvas, false);
+        var rootRect = _nfcRoot.AddComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.zero;
+        rootRect.anchorMax = Vector2.one;
+        rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
+
+        // Semi-transparent background
+        var bg = _nfcRoot.AddComponent<Image>();
+        bg.color = new Color(0, 0, 0, 0.6f);
+
+        // Copy font settings from countdownText
+        TMP_FontAsset font = countdownText.font;
+        Material fontMat = countdownText.fontSharedMaterial;
+
+        // Title: "SWIPE TO JOIN"
+        _nfcTitle = CreateLabel(_nfcRoot.transform, "NFC_Title", font, fontMat,
+            72, Color.white, new Vector2(0.5f, 0.7f));
+        _nfcTitle.text = "SWIPE TO JOIN";
+
+        // Blue ready label
+        _nfcBlueLabel = CreateLabel(_nfcRoot.transform, "NFC_Blue", font, fontMat,
+            52, new Color(0.3f, 0.6f, 1f), new Vector2(0.25f, 0.4f));
+        _nfcBlueLabel.text = "BLUE\n<size=36><color=#666>WAITING...</color></size>";
+
+        // Red ready label
+        _nfcRedLabel = CreateLabel(_nfcRoot.transform, "NFC_Red", font, fontMat,
+            52, new Color(1f, 0.35f, 0.35f), new Vector2(0.75f, 0.4f));
+        _nfcRedLabel.text = "RED\n<size=36><color=#666>WAITING...</color></size>";
+
+        _nfcRoot.SetActive(false);
+    }
+
+    TextMeshProUGUI CreateLabel(Transform parent, string name, TMP_FontAsset font,
+        Material fontMat, float size, Color color, Vector2 anchorPos){
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rect = go.AddComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = anchorPos;
+        rect.sizeDelta = new Vector2(500, 200);
+        rect.anchoredPosition = Vector2.zero;
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.font = font;
+        if (fontMat) tmp.fontSharedMaterial = fontMat;
+        tmp.fontSize = size;
+        tmp.color = color;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.enableWordWrapping = false;
+        tmp.richText = true;
+        return tmp;
+    }
+
     public void Start(){
+        BuildNFCUI();
+        nfcReader = gameObject.AddComponent<NFCReader>();
         Reset();
     }
+
+    public NFCReader nfcReader;
 
     private Coroutine timerCoroutine;
 
@@ -255,17 +341,83 @@ public class Game : MonoBehaviour {
     [FormerlySerializedAs("selectedMode")]
     public bool selectedSingleMode = false;
 
+    // ── NFC selection flow ────────────────────────────────────────────────
+    public bool nfcMode = false;
+
+    public void EnterNFCMode(){
+        Reset();
+        mainMenuUI.SetActive(false);
+        nfcMode = true;
+
+        // Show players on stage
+        playerBlue.gameObject.SetActive(true);
+        playerRed.gameObject.SetActive(true);
+
+        // Reset labels
+        _nfcBlueLabel.text = "BLUE\n<size=36><color=#666>WAITING...</color></size>";
+        _nfcRedLabel.text = "RED\n<size=36><color=#666>WAITING...</color></size>";
+        _nfcTitle.text = "SWIPE TO JOIN";
+        _nfcTitle.color = Color.white;
+        _nfcRoot.SetActive(true);
+    }
+
+    public void NFCPlayerReady(PlayerSide side){
+        if (!nfcMode) return;
+        if (side == PlayerSide.Blue) {
+            _nfcBlueLabel.text = "BLUE\n<size=36><color=#55AAFF>READY!</color></size>";
+            BlinkScreen(BlinkSide.Left);
+            SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
+            CameraShake.Shake(0.25f, 0.15f);
+            playerBlue.SetSmokeIntensitySmooth(1.5f, 0.1f);
+            Tools.CallDelayed(() => playerBlue.SetSmokeIntensitySmooth(0f, 0.3f), 0.3f);
+        }
+        else {
+            _nfcRedLabel.text = "RED\n<size=36><color=#FF5555>READY!</color></size>";
+            BlinkScreen(BlinkSide.Right);
+            SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
+            CameraShake.Shake(0.25f, 0.15f);
+            playerRed.SetSmokeIntensitySmooth(1.5f, 0.1f);
+            Tools.CallDelayed(() => playerRed.SetSmokeIntensitySmooth(0f, 0.3f), 0.3f);
+        }
+    }
+
+    public void NFCStartMatch(){
+        if (!nfcMode) return;
+
+        // Brief "GO!" flash before hiding NFC UI
+        _nfcTitle.text = "GO!";
+        _nfcTitle.color = new Color(0, 1f, 0.3f);
+        BlinkScreen(BlinkSide.Fullscreen);
+        CameraShake.Shake(0.4f, 0.2f);
+        SoundSys.PlaySound("Countdown", volume: 0.3f).audioSource.volume = 0.3f;
+
+        Tools.CallDelayed(() => {
+            nfcMode = false;
+            _nfcRoot.SetActive(false);
+
+            playerBlue.device = PlayerControlDevice.Gamepad;
+            playerRed.device = PlayerControlDevice.Gamepad;
+            playerBlue.Init();
+            playerRed.Init();
+            StartMatch();
+        }, 0.6f);
+    }
+
     public void Update(){
-        if (Input.GetKeyDown(KeyCode.R)) {
+        if (!matchRunning && selectAction.WasPressedThisFrame()) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        if (Input.GetKeyDown(KeyCode.F11)) {
-            Screen.fullScreen = !Screen.fullScreen;
+        if (nfcMode) {
+            if (escapeAction.WasPressedThisFrame()) {
+                nfcMode = false;
+                Reset();
+            }
+            return;
         }
         if (matchStarted) {
-            if (Input.GetKeyDown(KeyCode.Escape)) {
+            if (escapeAction.WasPressedThisFrame()) {
                 matchRunning = !matchRunning;
                 timerText.text = "PAUSED";
                 timerText.ForceMeshUpdate();
@@ -280,9 +432,9 @@ public class Game : MonoBehaviour {
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.Q)) {
+        else if (leftAction.WasPressedThisFrame()) {
             if (selectedSingleMode) {
-                playerBlue.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.18f;
                 playerRed.Init();
@@ -294,22 +446,25 @@ public class Game : MonoBehaviour {
                 difficultyUI.SetActive(true);
             }
         }
-        else if (Input.GetKeyDown(KeyCode.E)) {
+        else if (rightAction.WasPressedThisFrame()) {
             if (selectedSingleMode) {
-                playerBlue.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.05f;
                 playerRed.Init();
                 StartMatch();
             }
             else {
-                playerBlue.device = PlayerControlDevice.Keyboard;
-                playerRed.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
+                playerRed.device = PlayerControlDevice.Gamepad;
                 playerRed.Init();
                 StartMatch();
             }
         }
-        else if (Input.GetKeyDown(KeyCode.F) && selectedSingleMode) {
+        else if (nfcAction.WasPressedThisFrame() && !selectedSingleMode) {
+            EnterNFCMode();
+        }
+        else if (selectAction.WasPressedThisFrame() && selectedSingleMode) {
             playerRed.device = PlayerControlDevice.AI;
             playerRed.aiDecisionInterval = 0.01f;
             playerRed.Init();
