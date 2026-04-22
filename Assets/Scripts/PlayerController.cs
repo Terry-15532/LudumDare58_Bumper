@@ -116,6 +116,11 @@ public class PlayerController : MonoBehaviour {
     public float invincibleUntil = 0f;
     public float speedBoostMultiplier = 1.5f;
 
+    // Most-recently-applied durations for each buff. Used by PickupHUD to compute progress bar fill.
+    [HideInInspector] public float speedBoostDuration = 0f;
+    [HideInInspector] public float invincibleDuration = 0f;
+    [HideInInspector] public float doubleScoreDuration = 0f;
+
     // Baselines captured in Init so runtime values are always derived from a known-good source,
     // never from a possibly-already-boosted "current" value. Prevents compounding stack bugs.
     float baseAcc, baseMaxSpeed, baseMass;
@@ -125,15 +130,18 @@ public class PlayerController : MonoBehaviour {
 
     public void ApplySpeedBoost(float duration, float multiplier){
         speedBoostUntil = Time.time + duration;
+        speedBoostDuration = duration;
         speedBoostMultiplier = multiplier;
     }
 
     public void ApplyInvincibility(float duration){
         invincibleUntil = Time.time + duration;
+        invincibleDuration = duration;
     }
 
     public void ApplyDoubleScore(float duration){
         doubleScoreUntil = Time.time + duration;
+        doubleScoreDuration = duration;
     }
 
     void UpdateBuffs(){
