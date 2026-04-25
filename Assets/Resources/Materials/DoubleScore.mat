@@ -195,7 +195,7 @@ Material:
     - _DissolveEdgeColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _FresnelColor: {r: 1, g: 1, b: 1, a: 1}
-    - _HoloColor: {r: 4.388868, g: 1.1295817, b: 0, a: 1}
+    - _HoloColor: {r: 4.456, g: 0.8912001, b: 0, a: 1}
     - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _NormalOffset: {r: 0, g: 0, b: 0, a: 1}
     - _OuterOutlineColor: {r: 0, g: 0, b: 0, a: 1}

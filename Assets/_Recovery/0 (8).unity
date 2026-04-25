@@ -773,9 +773,6 @@ MonoBehaviour:
   speedBoostUntil: 0
   invincibleUntil: 0
   speedBoostMultiplier: 1.5
-  speedBoostDuration: 0
-  invincibleDuration: 0
-  doubleScoreDuration: 0
   bombPlaced: 0
   dashForce: 28
   dashCooldown: 2
@@ -9972,7 +9969,7 @@ Transform:
   m_GameObject: {fileID: 1913867544}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: -0.7071068, w: 0}
-  m_LocalPosition: {x: 0, y: 50, z: 0.7}
+  m_LocalPosition: {x: -0.15, y: 50, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11161,9 +11158,6 @@ MonoBehaviour:
   speedBoostUntil: 0
   invincibleUntil: 0
   speedBoostMultiplier: 1.5
-  speedBoostDuration: 0
-  invincibleDuration: 0
-  doubleScoreDuration: 0
   bombPlaced: 0
   dashForce: 28
   dashCooldown: 2

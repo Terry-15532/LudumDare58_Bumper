@@ -203,8 +203,8 @@ public class PlayerController : MonoBehaviour {
         lastBuffVisual = current;
         Color c = current switch {
             BuffVisual.Invincible => new Color(2f, 2f, 2f),
-            BuffVisual.SpeedBoost => new Color(2f, 1.5f, 0.2f),
-            BuffVisual.DoubleScore => new Color(0.2f, 2f, 0.2f),
+            BuffVisual.SpeedBoost => new Color(0.2f, 2f, 0.2f),
+            BuffVisual.DoubleScore => new Color(2f, 1.5f, 0.2f),
             _ => Color.clear
         };
         var mats = mr.materials;

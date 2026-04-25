@@ -19,18 +19,18 @@ public class PickupHUD : MonoBehaviour {
     }
 
     // --- Palette ---
-    static readonly Color BlueSide   = new Color(0.35f, 0.85f, 1.9f);
-    static readonly Color RedSide    = new Color(1.9f, 0.30f, 0.45f);
-    static readonly Color PanelBG    = new Color(0.018f, 0.022f, 0.05f, 0.90f);
+    static readonly Color BlueSide = new Color(0.35f, 0.85f, 1.9f);
+    static readonly Color RedSide = new Color(1.9f, 0.30f, 0.45f);
+    static readonly Color PanelBG = new Color(0.018f, 0.022f, 0.05f, 0.90f);
     static readonly Color PanelBGInner = new Color(0.035f, 0.045f, 0.09f, 0.92f);
     static readonly Color SegmentOff = new Color(0.08f, 0.10f, 0.16f, 0.85f);
-    static readonly Color DescColor  = new Color(0.72f, 0.78f, 0.88f, 1f);
-    static readonly Color TimeColor  = new Color(1f, 1f, 1f, 0.95f);
+    static readonly Color DescColor = new Color(0.72f, 0.78f, 0.88f, 1f);
+    static readonly Color TimeColor = new Color(1f, 1f, 1f, 0.95f);
 
     // --- Sizing ---
     const float PanelW = 420f;
     const float PanelH = 120f;
-    const int   BarSegments = 14;
+    const int BarSegments = 14;
 
     enum BuffKind { SpeedBoost, DoubleScore, Invincibility }
 
@@ -41,9 +41,19 @@ public class PickupHUD : MonoBehaviour {
 
     // Icon glyphs chosen to exist in TMP's default Liberation Sans (avoid missing-glyph rects).
     static readonly Dictionary<BuffKind, BuffDef> defs = new Dictionary<BuffKind, BuffDef> {
-        { BuffKind.SpeedBoost,    new BuffDef { title = "SPEED BOOST",    desc = "1.5× acceleration and top speed", icon = "▶", accent = new Color(2.1f, 1.35f, 0.15f) } },
-        { BuffKind.DoubleScore,   new BuffDef { title = "DOUBLE SCORE",   desc = "Every coin is worth 2 points",    icon = "★", accent = new Color(0.25f, 1.95f, 0.6f) } },
-        { BuffKind.Invincibility, new BuffDef { title = "INVINCIBILITY",  desc = "Immune to all external forces",   icon = "◆", accent = new Color(1.8f, 1.8f, 2.0f) } },
+        {
+            BuffKind.SpeedBoost, new BuffDef {
+                title = "SPEED BOOST", desc = "1.5× acceleration and top speed", icon = "▶", accent = new Color(0.25f, 1.95f, 0.6f)
+            }
+        }, {
+            BuffKind.DoubleScore, new BuffDef {
+                title = "DOUBLE SCORE", desc = "Every coin is worth 2 points", icon = "★", accent = new Color(2.1f, 1.35f, 0.15f)
+            }
+        }, {
+            BuffKind.Invincibility, new BuffDef {
+                title = "INVINCIBILITY", desc = "Immune to all external forces", icon = "◆", accent = new Color(1.8f, 1.8f, 2.0f)
+            }
+        },
     };
 
     class Entry {
@@ -62,17 +72,22 @@ public class PickupHUD : MonoBehaviour {
     Canvas canvas;
     RectTransform leftCol, rightCol;
     readonly Dictionary<BuffKind, Entry> blueEntries = new Dictionary<BuffKind, Entry>();
-    readonly Dictionary<BuffKind, Entry> redEntries  = new Dictionary<BuffKind, Entry>();
+    readonly Dictionary<BuffKind, Entry> redEntries = new Dictionary<BuffKind, Entry>();
 
     static Sprite _scanlineSprite;
 
     void Awake(){
-        if (instance != null && instance != this) { Destroy(gameObject); return; }
+        if (instance != null && instance != this) {
+            Destroy(gameObject);
+            return;
+        }
         instance = this;
         BuildCanvas();
     }
 
-    void OnDestroy(){ if (instance == this) instance = null; }
+    void OnDestroy(){
+        if (instance == this) instance = null;
+    }
 
     // === Top-level structure ===
 
@@ -88,7 +103,7 @@ public class PickupHUD : MonoBehaviour {
         scaler.matchWidthOrHeight = 0.5f;
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        leftCol  = BuildColumn("LeftColumn", true);
+        leftCol = BuildColumn("LeftColumn", true);
         rightCol = BuildColumn("RightColumn", false);
     }
 
@@ -96,8 +111,8 @@ public class PickupHUD : MonoBehaviour {
         var go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(canvas.transform, false);
         var rt = (RectTransform)go.transform;
-        rt.anchorMin = new Vector2(leftSide ? 0 : 1, 0.5f);
-        rt.anchorMax = new Vector2(leftSide ? 0 : 1, 0.5f);
+        rt.anchorMin = new Vector2(leftSide ? 0 : 1, 0.9f);
+        rt.anchorMax = new Vector2(leftSide ? 0 : 1, 0.9f);
         rt.pivot = new Vector2(leftSide ? 0 : 1, 0.5f);
         rt.anchoredPosition = new Vector2(leftSide ? 36 : -36, 0);
         rt.sizeDelta = new Vector2(PanelW + 40, 0);
@@ -116,17 +131,17 @@ public class PickupHUD : MonoBehaviour {
     void Update(){
         if (Game.instance == null) return;
         var blue = Game.instance.playerBlue;
-        var red  = Game.instance.playerRed;
-        if (blue != null) HandlePlayer(blue, leftCol,  blueEntries, true);
-        if (red  != null) HandlePlayer(red,  rightCol, redEntries,  false);
+        var red = Game.instance.playerRed;
+        if (blue != null) HandlePlayer(blue, leftCol, blueEntries, true);
+        if (red != null) HandlePlayer(red, rightCol, redEntries, false);
         AnimateAll(blueEntries);
         AnimateAll(redEntries);
     }
 
     void HandlePlayer(PlayerController p, RectTransform parent, Dictionary<BuffKind, Entry> entries, bool leftSide){
-        Sync(p, parent, entries, leftSide, BuffKind.SpeedBoost,    p.speedBoostUntil,   p.speedBoostDuration);
-        Sync(p, parent, entries, leftSide, BuffKind.DoubleScore,   p.doubleScoreUntil,  p.doubleScoreDuration);
-        Sync(p, parent, entries, leftSide, BuffKind.Invincibility, p.invincibleUntil,   p.invincibleDuration);
+        Sync(p, parent, entries, leftSide, BuffKind.SpeedBoost, p.speedBoostUntil, p.speedBoostDuration);
+        Sync(p, parent, entries, leftSide, BuffKind.DoubleScore, p.doubleScoreUntil, p.doubleScoreDuration);
+        Sync(p, parent, entries, leftSide, BuffKind.Invincibility, p.invincibleUntil, p.invincibleDuration);
     }
 
     void Sync(PlayerController p, RectTransform parent, Dictionary<BuffKind, Entry> entries, bool leftSide, BuffKind kind, float until, float duration){
@@ -227,7 +242,7 @@ public class PickupHUD : MonoBehaviour {
         var rootRT = (RectTransform)root.transform;
         var le = root.AddComponent<LayoutElement>();
         le.preferredHeight = PanelH;
-        le.preferredWidth  = PanelW;
+        le.preferredWidth = PanelW;
         rootRT.sizeDelta = new Vector2(PanelW, PanelH);
         var group = root.AddComponent<CanvasGroup>();
         group.alpha = 0f;
@@ -235,11 +250,11 @@ public class PickupHUD : MonoBehaviour {
         // --- Halo: 3 stacked boxes behind ---
         BuildHaloLayer(root.transform, def.accent, 0.10f, 44f);
         BuildHaloLayer(root.transform, def.accent, 0.18f, 24f);
-        BuildHaloLayer(root.transform, sideColor,  0.22f, 10f);
+        BuildHaloLayer(root.transform, sideColor, 0.22f, 10f);
 
         // --- Panel background (two-tone inner for subtle depth) ---
-        var bg     = AddImage(root.transform, "BG",     PanelBG,      full: true);
-        var bgIn   = AddImage(root.transform, "BGInner", PanelBGInner);
+        var bg = AddImage(root.transform, "BG", PanelBG, full: true);
+        var bgIn = AddImage(root.transform, "BGInner", PanelBGInner);
         Inset(bgIn.rectTransform, 3f);
 
         // --- Scanlines (tiled texture) ---
@@ -259,8 +274,8 @@ public class PickupHUD : MonoBehaviour {
         BuildSideStrip(root.transform, leftSide, new Color(sideColor.r * 0.5f, sideColor.g * 0.5f, sideColor.b * 0.5f, 1f), 4f);
 
         // --- Corner brackets (sci-fi L-shapes at 4 corners) ---
-        BuildCornerBracket(root.transform, def.accent, top: true,  leftCorner: true);
-        BuildCornerBracket(root.transform, def.accent, top: true,  leftCorner: false);
+        BuildCornerBracket(root.transform, def.accent, top: true, leftCorner: true);
+        BuildCornerBracket(root.transform, def.accent, top: true, leftCorner: false);
         BuildCornerBracket(root.transform, def.accent, top: false, leftCorner: true);
         BuildCornerBracket(root.transform, def.accent, top: false, leftCorner: false);
 
@@ -275,7 +290,7 @@ public class PickupHUD : MonoBehaviour {
         icon.alignment = TextAlignmentOptions.Center;
 
         // --- Text block (title + description) ---
-        float textLeft  = leftSide ? 90f : 20f;
+        float textLeft = leftSide ? 90f : 20f;
         float textRight = leftSide ? 20f : 90f;
         var title = BuildText(root.transform, "Title", def.title, 30f, def.accent, FontStyles.Bold | FontStyles.UpperCase);
         title.characterSpacing = 4f;
@@ -288,9 +303,12 @@ public class PickupHUD : MonoBehaviour {
 
         // --- Bar area (segments + time) ---
         const float timeW = 54f;
-        float barLeft  = textLeft;
+        float barLeft = textLeft;
         float barRight = textRight + timeW + 10f;
-        if (!leftSide) { barLeft = textLeft + timeW + 10f; barRight = textRight; }
+        if (!leftSide) {
+            barLeft = textLeft + timeW + 10f;
+            barRight = textRight;
+        }
 
         var segments = BuildSegmentedBar(root.transform, leftSide, barLeft, barRight, bottomY: 14, height: 14);
 
@@ -360,7 +378,7 @@ public class PickupHUD : MonoBehaviour {
         var hr = h.rectTransform;
         hr.anchorMin = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
         hr.anchorMax = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
-        hr.pivot     = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
+        hr.pivot = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
         hr.sizeDelta = new Vector2(len, thick);
         hr.anchoredPosition = new Vector2(leftCorner ? 4 : -4, top ? -4 : 4);
         // Vertical leg
@@ -368,7 +386,7 @@ public class PickupHUD : MonoBehaviour {
         var vr = v.rectTransform;
         vr.anchorMin = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
         vr.anchorMax = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
-        vr.pivot     = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
+        vr.pivot = new Vector2(leftCorner ? 0 : 1, top ? 1 : 0);
         vr.sizeDelta = new Vector2(thick, len);
         vr.anchoredPosition = new Vector2(leftCorner ? 4 : -4, top ? -4 : 4);
     }

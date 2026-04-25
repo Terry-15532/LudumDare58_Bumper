@@ -56,7 +56,7 @@ public class Game : MonoBehaviour {
             return;
         }
         _instance = this;
-        
+
         Cursor.lockState = CursorLockMode.Locked;
 
         var cloned = Instantiate(input).FindActionMap("UIActionMap");
@@ -249,8 +249,8 @@ public class Game : MonoBehaviour {
 
         Tools.CallDelayed(() => {
             matchRunning = true;
-            beforeMatchUI.SetActive(false);
-            matchUI.SetActive(true);
+            beforeMatchUI?.SetActive(false);
+            matchUI?.SetActive(true);
             coin.transform.position = new Vector3(0f, 2.5f + Mathf.Sin(Time.time * 2) * 0.15f, 0);
             coin.SetActive(true);
             Tools.CallDelayed(() => {
@@ -404,7 +404,7 @@ public class Game : MonoBehaviour {
     }
 
     public void Update(){
-        if (!matchRunning && selectAction.WasPressedThisFrame()) {
+        if (((!matchRunning || !matchStarted) && !selectedSingleMode && selectAction.WasPressedThisFrame())) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
