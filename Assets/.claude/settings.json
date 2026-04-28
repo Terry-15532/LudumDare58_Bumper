@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/ADMIN/Documents/LudumDare58_Bumper/**)",
+      "Read(//c/Users/ADMIN/Downloads/**)",
+      "Read(//c/Users/ADMIN/Documents/Arduino/**)",
+      "Bash(mkdir -p \"c:/Users/ADMIN/Documents/Arduino/libraries\")",
+      "Bash(unzip -o \"c:/Users/ADMIN/Downloads/rfid-master.zip\")",
+      "Read(//c/Users/ADMIN/AppData/LocalLow/TairuiLi/LiTairui-W5/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\ADMIN\\Documents\\Arduino\\libraries\\rfid-master",
+      "c:\\Users\\ADMIN\\Documents\\LudumDare58_Bumper\\Arduino\\NFCReader",
+      "c:\\Users\\ADMIN\\AppData\\LocalLow\\TairuiLi\\LiTairui-W5"
+    ]
+  }
+}

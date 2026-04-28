@@ -1,0 +1,8 @@
+Android / Noto Emoji
+Copyright (c) The Android Open Source Project
+Licensed under the Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+
+Atlas + sprite asset sourced from:
+https://github.com/chromee/FullEmojiSupportApi
+(Sheets/sheet_google_64_resized.png + EmojiDataAssets/texturepacker_emoji.asset, renamed to NotoEmoji)

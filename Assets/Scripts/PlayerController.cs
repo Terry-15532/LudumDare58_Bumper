@@ -29,18 +29,32 @@ public class PlayerController : MonoBehaviour {
     public Rigidbody rb;
     public MeshRenderer mr;
 
+    // Populated by Game.NFCStartMatch when a match begins via NFC.
+    // Empty strings in keyboard / AI mode — UI should fall back to the side label.
+    [System.NonSerialized] public string profileUid   = "";
+    [System.NonSerialized] public string profileName  = "";
+    [System.NonSerialized] public string profileEmoji = "";
+
     public GameObject BombPrefab;
 
-    public KeyCode[] keys = new KeyCode[5];//up, down, left, right, skill
-
+    // keys[0-3]: up/down/left/right  [4]: bomb  [5]: dash  [6]: shield  [7]: taunt
+    public KeyCode[] keys = new KeyCode[8];
 
     public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
     public static KeyCode[] blueKeys = {
-        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space
+        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D,
+        KeyCode.Space,
+        KeyCode.LeftShift,
+        KeyCode.LeftControl,
+        KeyCode.Z
     };
     public static KeyCode[] redKeys = {
-        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return
+        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow,
+        KeyCode.Return,
+        KeyCode.RightShift,
+        KeyCode.RightControl,
+        KeyCode.Slash
     };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
@@ -64,6 +78,19 @@ public class PlayerController : MonoBehaviour {
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         transform.rotation = Quaternion.Euler(0, side == PlayerSide.Blue ? 90f : -90f, 0);
+        ClearBuffs();
+    }
+
+    public void ClearBuffs(){
+        speedBoostUntil = 0f;
+        invincibleUntil = 0f;
+        doubleScoreUntil = 0f;
+        dashCooldownLeft = 0f;
+        shieldCooldownLeft = 0f;
+        shieldActive = false;
+        shieldActiveLeft = 0f;
+        tauntCooldownLeft = 0f;
+        if (rb != null) rb.mass = baseMass;
     }
 
     public void Awake(){
@@ -88,18 +115,81 @@ public class PlayerController : MonoBehaviour {
         // mr = player.GetComponentInChildren<MeshRenderer>();
         rb = player.GetComponent<Rigidbody>();
         keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        baseAcc = acc;
+        baseMaxSpeed = maxSpeed;
+        baseMass = rb.mass;
+        var mats = mr.materials;
+        originalMaterialColors = new Color[mats.Length];
+        for (int i = 0; i < mats.Length; i++)
+            originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+    }
+
+    static readonly int buffColorId = Shader.PropertyToID("_Color");
+    Color[] originalMaterialColors;
+
+    // Buff timestamps — a buff is active while Time.time < *Until.
+    // Each frame UpdateBuffs() applies runtime effects and material color based on these.
+    public float speedBoostUntil = 0f;
+    public float invincibleUntil = 0f;
+    public float speedBoostMultiplier = 1.5f;
+
+    // Baselines captured in Init so runtime values are always derived from a known-good source,
+    // never from a possibly-already-boosted "current" value. Prevents compounding stack bugs.
+    float baseAcc, baseMaxSpeed, baseMass;
+
+    enum BuffVisual { None, SpeedBoost, DoubleScore, Invincible }
+    BuffVisual lastBuffVisual = BuffVisual.None;
+
+    public void ApplySpeedBoost(float duration, float multiplier){
+        speedBoostUntil = Time.time + duration;
+        speedBoostMultiplier = multiplier;
+    }
+
+    public void ApplyInvincibility(float duration){
+        invincibleUntil = Time.time + duration;
+    }
+
+    public void ApplyDoubleScore(float duration){
+        doubleScoreUntil = Time.time + duration;
+    }
+
+    void UpdateBuffs(){
+        bool speedActive = Time.time < speedBoostUntil;
+        bool invincibleActive = Time.time < invincibleUntil;
+        bool doubleActive = Time.time < doubleScoreUntil;
+
+        acc = speedActive ? baseAcc * speedBoostMultiplier : baseAcc;
+        maxSpeed = speedActive ? baseMaxSpeed * speedBoostMultiplier : baseMaxSpeed;
+        rb.mass = invincibleActive ? 100000f : baseMass;
+
+        BuffVisual current = BuffVisual.None;
+        if (invincibleActive) current = BuffVisual.Invincible;
+        else if (speedActive) current = BuffVisual.SpeedBoost;
+        else if (doubleActive) current = BuffVisual.DoubleScore;
+
+        if (current == lastBuffVisual) return;
+        lastBuffVisual = current;
+        Color c = current switch {
+            BuffVisual.Invincible => new Color(2f, 2f, 2f),
+            BuffVisual.SpeedBoost => new Color(2f, 1.5f, 0.2f),
+            BuffVisual.DoubleScore => new Color(0.2f, 2f, 0.2f),
+            _ => Color.clear
+        };
+        var mats = mr.materials;
+        for (int i = 0; i < mats.Length; i++) {
+            mats[i].SetColor(buffColorId, current == BuffVisual.None ? originalMaterialColors[i] : c);
+        }
     }
 
     Coroutine smokeCoroutine;
 
     public void SetSmokeIntensitySmooth(float targetIntensity, float duration){
         if (smokeCoroutine != null) {
-            StopCoroutine(smokeCoroutine);
+            Tools.callDelayedHelper.StopCoroutine(smokeCoroutine);
         }
         smokeCoroutine = Tools.callDelayedHelper.StartCoroutine(SmoothIntensity(targetIntensity, duration));
-
     }
 
     IEnumerator SmoothIntensity(float targetIntensity, float duration){
@@ -122,6 +212,29 @@ public class PlayerController : MonoBehaviour {
 
     public bool bombPlaced = false;
 
+    // ── Dash ──────────────────────────────────────────────────────────────
+    public float dashForce        = 28f;
+    public float dashCooldown     = 2f;
+    float        dashCooldownLeft = 0f;
+
+    // ── Shield ────────────────────────────────────────────────────────────
+    public float shieldDuration    = 1.5f;
+    public float shieldCooldown    = 4f;
+    public float shieldReflectForce = 18f;
+    float        shieldCooldownLeft = 0f;
+    public bool  shieldActive       = false;
+    float        shieldActiveLeft   = 0f;
+
+    // ── Taunt ─────────────────────────────────────────────────────────────
+    public float tauntCooldown     = 3f;
+    float        tauntCooldownLeft = 0f;
+
+    public float doubleScoreUntil = 0f;
+
+    void LateUpdate(){
+        UpdateBuffs();
+    }
+
     // AI decision delay variables
     public float aiDecisionInterval = 0.3f;// seconds between decisions
     private float aiDecisionTimer = 0f;
@@ -132,24 +245,44 @@ public class PlayerController : MonoBehaviour {
     private float aiBombDecisionTimer = 0f;
 
     void Update(){
+        // Cooldown timers (unscaled so they tick during pause-exempt moments, scaled otherwise)
+        dashCooldownLeft   = Mathf.Max(0, dashCooldownLeft   - Time.deltaTime);
+        shieldCooldownLeft = Mathf.Max(0, shieldCooldownLeft - Time.deltaTime);
+        tauntCooldownLeft  = Mathf.Max(0, tauntCooldownLeft  - Time.deltaTime);
+
+        // Shield active timer
+        if (shieldActive) {
+            shieldActiveLeft -= Time.deltaTime;
+            if (shieldActiveLeft <= 0f) shieldActive = false;
+        }
+
         if (device == PlayerControlDevice.Keyboard) {
             direction = Vector3.zero;
-            if (Input.GetKey(keys[0])) {
-                direction -= Vector3.forward;
-            }
-            if (Input.GetKey(keys[1])) {
-                direction -= Vector3.back;
-            }
-            if (Input.GetKey(keys[2])) {
-                direction -= Vector3.left;
-            }
-            if (Input.GetKey(keys[3])) {
-                direction -= Vector3.right;
-            }
-            if (!bombPlaced && Input.GetKeyDown(keys[4]) && Game.instance.matchRunning) {
-                Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+            if (Input.GetKey(keys[0])) direction -= Vector3.forward;
+            if (Input.GetKey(keys[1])) direction -= Vector3.back;
+            if (Input.GetKey(keys[2])) direction -= Vector3.left;
+            if (Input.GetKey(keys[3])) direction -= Vector3.right;
+
+            if (!Game.instance.matchRunning) return;
+
+            // Bomb
+            if (!bombPlaced && Input.GetKeyDown(keys[4])) {
+                Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                 bombPlaced = true;
             }
+            // Dash
+            if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
+                PerformDash();
+            }
+            // Shield
+            if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
+                ActivateShield();
+            }
+            // Taunt
+            if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
+                PerformTaunt();
+            }
+
             if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
@@ -233,7 +366,7 @@ public class PlayerController : MonoBehaviour {
                         bool goodPosition = enemyDist < 2.5f;// closer range = higher priority
 
                         if (enemyApproaching || goodPosition) {
-                            Instantiate(BombPrefab, transform.position, BombPrefab.transform.rotation);
+                            Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                             bombPlaced = true;
                         }
                     }
@@ -253,36 +386,173 @@ public class PlayerController : MonoBehaviour {
     //     rb.angularVelocity = Vector3.zero;
     // }
 
+    // ── Dash ──────────────────────────────────────────────────────────────
+    Color SideTint() => side == PlayerSide.Blue ? new Color(0.4f, 0.7f, 1f) : new Color(1f, 0.45f, 0.45f);
+
+    // NotoEmoji yellow-face sprites — passed Color.white so the sprite color shows through.
+    const string DashEmoji    = "<sprite=\"NotoEmoji\" name=\"1f60e\">"; // sunglasses
+    const string ShieldEmoji  = "<sprite=\"NotoEmoji\" name=\"1f923\">"; // rofl
+    const string TauntEmoji   = "<sprite=\"NotoEmoji\" name=\"1f61c\">"; // tongue + wink
+    const string KillEmoji    = "<sprite=\"NotoEmoji\" name=\"1f602\">"; // tears of joy
+    const string CoinFallback = "<sprite=\"NotoEmoji\" name=\"1f60a\">"; // blush
+
+    public void PerformDash() {
+        EmojiReaction.Spawn(player.transform, DashEmoji);
+        // Dash towards the opponent; fall back to movement direction or forward
+        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+        Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
+        toOpponent.y = 0;
+        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized :
+                    (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+        rb.linearVelocity = d * dashForce;
+        dashCooldownLeft  = dashCooldown;
+
+        SoundSys.PlaySound("Hit").audioSource.volume = 0.5f;
+        CameraShake.Shake(0.35f, 0.18f);
+
+        // Smoke burst
+        SetSmokeIntensitySmooth(2.5f, 0.05f);
+        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+
+        // Outline flash in player color
+        var dashColor = side == PlayerSide.Blue
+            ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
+            : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
+        mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
+        Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+
+        // Screen blink on own side
+        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+    }
+
+    // ── Shield ────────────────────────────────────────────────────────────
+    public void ActivateShield() {
+        shieldActive       = true;
+        shieldActiveLeft   = shieldDuration;
+        shieldCooldownLeft = shieldCooldown;
+
+        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
+
+        // Force UpdateBuffs to re-evaluate on next frame
+        lastBuffVisual = BuffVisual.None;
+
+        // Cyan glow
+        var mats = mr.materials;
+        foreach (var m in mats) m.SetColor(buffColorId, new Color(0.2f, 2f, 2f));
+
+        // Cyan outline
+        mr.materials[0].SetVector(Wall.outerColorIndex, new Vector4(0.2f, 1.5f, 2f, 1) * 8f);
+
+        // Smoke burst
+        SetSmokeIntensitySmooth(1.8f, 0.08f);
+        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0.4f, 0.3f), 0.15f);
+
+        // Screen blink
+        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+
+        // When shield expires, clean up and let UpdateBuffs restore correct color
+        Tools.CallDelayed(() => {
+            if (!shieldActive) {
+                mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero);
+                SetSmokeIntensitySmooth(0f, 0.3f);
+                lastBuffVisual = BuffVisual.None;
+            }
+        }, shieldDuration);
+    }
+
+    // ── Taunt ─────────────────────────────────────────────────────────────
+    public void PerformTaunt() {
+        EmojiReaction.Spawn(player.transform, TauntEmoji);
+        tauntCooldownLeft = tauntCooldown;
+        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+
+        SoundSys.PlaySound("Taunt _Robotic Voice").audioSource.volume = 0.5f;
+
+        // Smoke puff on opponent only
+        opponent.SetSmokeIntensitySmooth(1.2f, 0.1f);
+        Tools.CallDelayed(() => opponent.SetSmokeIntensitySmooth(0f, 0.4f), 0.3f);
+
+        // Triple-flash opponent's screen side
+        BlinkSide oppBlink = side == PlayerSide.Blue ? BlinkSide.Right : BlinkSide.Left;
+        Game.instance.BlinkScreen(oppBlink);
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.15f);
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.30f);
+
+        // Fullscreen blink finale
+        Tools.CallDelayed(() => Game.instance.BlinkScreen(BlinkSide.Fullscreen), 0.45f);
+
+        // Camera nudge
+        CameraShake.Shake(0.2f, 0.12f);
+    }
+
     public void OnTriggerEnter(Collider other){
         if (other.gameObject.CompareTag("DeathZone")) {
+            // Killer = the opposite side.
+            PlayerController killer = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+            EmojiReaction.Spawn(killer.player.transform, KillEmoji);
             Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
             gameObject.SetActive(false);
             ResetPosition();
             SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
-            Tools.CallDelayed(() => {
-                gameObject.SetActive(true);
-            }, 1f);
-            // Tools.CallDelayed(() => {
-            //     gameObject.SetActive(true);
-            // }, 0.3f);
+            CameraShake.Shake(0.8f, 0.35f);
+            Tools.CallDelayed(() => { gameObject.SetActive(true); }, 1f);
         }
         else if (other.gameObject.name == "Coin") {
+            // Personal-touch reaction: show the player's own emoji.
+            string sym = string.IsNullOrEmpty(profileEmoji) ? CoinFallback : profileEmoji;
+            EmojiReaction.Spawn(player.transform, sym);
             other.gameObject.GetComponent<Coin>().ChangePosition();
-            Game.instance.AddScore(side, 1);
+            int mult = Time.time < doubleScoreUntil ? 2 : 1;
+            Game.instance.AddScore(side, mult);
+        }
+        else {
+            var pickup = other.GetComponentInParent<PickupBase>();
+            if (pickup != null) pickup.OnPickup(this);
         }
     }
 
     public void OnCollisionEnter(Collision collision){
         if (!collision.gameObject.CompareTag("Floor")) {
-            mr.materials[0].SetVector(Wall.outerColorIndex, side == PlayerSide.Blue ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
+            mr.materials[0].SetVector(Wall.outerColorIndex,
+                side == PlayerSide.Blue
+                    ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f
+                    : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
             Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.1f);
-            // CameraShake.Shake(player.transform, collision.GetContact(0).normal, 1f, 0.3f, 0.2f);
+            CameraShake.Shake(0.25f, 0.18f);
         }
+
+        // Shield reflect: push the colliding player away
+        if (shieldActive && collision.gameObject.CompareTag("Player")) {
+            var other = collision.gameObject.GetComponent<PlayerController>()
+                        ?? collision.gameObject.GetComponentInParent<PlayerController>();
+            if (other != null && other != this) {
+                EmojiReaction.Spawn(player.transform, ShieldEmoji);
+                Vector3 dir = (other.player.transform.position - player.transform.position).normalized;
+                dir.y = 0;
+                other.rb.AddForce(dir * shieldReflectForce, ForceMode.Impulse);
+
+                SoundSys.PlaySound("Explosion").audioSource.volume = 0.3f;
+                CameraShake.Shake(0.6f, 0.25f);
+
+                // Smoke burst on both players
+                SetSmokeIntensitySmooth(2f, 0.05f);
+                Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.2f), 0.15f);
+                other.SetSmokeIntensitySmooth(1.5f, 0.05f);
+                Tools.CallDelayed(() => other.SetSmokeIntensitySmooth(0f, 0.2f), 0.15f);
+
+                // Outline flash on the reflected player
+                var reflectColor = new Vector4(0.2f, 1.5f, 2f, 1) * 10f;
+                other.mr.materials[0].SetVector(Wall.outerColorIndex, reflectColor);
+                Tools.CallDelayed(() => other.mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+
+                // Fullscreen blink
+                Game.instance.BlinkScreen(BlinkSide.Fullscreen);
+            }
+        }
+
         if (collision.gameObject.CompareTag("Wall")) {
             Wall wall = collision.gameObject.GetComponent<Wall>();
-            if (wall == null) {
-                wall = collision.gameObject.GetComponentInParent<Wall>();
-            }
+            if (wall == null) wall = collision.gameObject.GetComponentInParent<Wall>();
             wall?.SetOutlineBlink(side);
         }
     }
