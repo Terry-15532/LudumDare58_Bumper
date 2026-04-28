@@ -68,9 +68,10 @@ public class Game : MonoBehaviour {
         selectAction = cloned.FindAction("Select");
         escapeAction = cloned.FindAction("Escape");
         nfcAction = cloned.FindAction("NFC");
-        cloned.devices = new[] {
-            Gamepad.all[0], Gamepad.all[1], (InputDevice)Keyboard.current
-        };
+        var devs = new List<InputDevice>();
+        foreach (var g in Gamepad.all) devs.Add(g);
+        if (Keyboard.current != null) devs.Add(Keyboard.current);
+        cloned.devices = devs.ToArray();
         cloned.Enable();
 
     }

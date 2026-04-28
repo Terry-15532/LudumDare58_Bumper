@@ -134,6 +134,10 @@ public class PlayerController : MonoBehaviour {
         if (device == PlayerControlDevice.Gamepad) {
             // input.user.UnpairDevices();
             // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
+            if (gamePadIndex < 0 || gamePadIndex >= Gamepad.all.Count) {
+                Debug.LogWarning($"{name}: gamePadIndex {gamePadIndex} but only {Gamepad.all.Count} gamepad(s) connected — skipping gamepad bind.");
+                return;
+            }
             Gamepad pad = Gamepad.all[gamePadIndex];
             var cloned = Instantiate(input).FindActionMap("PlayerMovement");
             movement = cloned.FindAction("Movement");
