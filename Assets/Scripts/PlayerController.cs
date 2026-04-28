@@ -31,8 +31,9 @@ public class PlayerController : MonoBehaviour {
 
     // Populated by Game.NFCStartMatch when a match begins via NFC.
     // Empty strings in keyboard / AI mode — UI should fall back to the side label.
-    [System.NonSerialized] public string profileUid  = "";
-    [System.NonSerialized] public string profileName = "";
+    [System.NonSerialized] public string profileUid   = "";
+    [System.NonSerialized] public string profileName  = "";
+    [System.NonSerialized] public string profileEmoji = "";
 
     public GameObject BombPrefab;
 
@@ -386,7 +387,17 @@ public class PlayerController : MonoBehaviour {
     // }
 
     // ── Dash ──────────────────────────────────────────────────────────────
+    Color SideTint() => side == PlayerSide.Blue ? new Color(0.4f, 0.7f, 1f) : new Color(1f, 0.45f, 0.45f);
+
+    // NotoEmoji yellow-face sprites — passed Color.white so the sprite color shows through.
+    const string DashEmoji    = "<sprite=\"NotoEmoji\" name=\"1f60e\">"; // sunglasses
+    const string ShieldEmoji  = "<sprite=\"NotoEmoji\" name=\"1f923\">"; // rofl
+    const string TauntEmoji   = "<sprite=\"NotoEmoji\" name=\"1f61c\">"; // tongue + wink
+    const string KillEmoji    = "<sprite=\"NotoEmoji\" name=\"1f602\">"; // tears of joy
+    const string CoinFallback = "<sprite=\"NotoEmoji\" name=\"1f60a\">"; // blush
+
     public void PerformDash() {
+        EmojiReaction.Spawn(player.transform, DashEmoji);
         // Dash towards the opponent; fall back to movement direction or forward
         PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
         Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
@@ -451,6 +462,7 @@ public class PlayerController : MonoBehaviour {
 
     // ── Taunt ─────────────────────────────────────────────────────────────
     public void PerformTaunt() {
+        EmojiReaction.Spawn(player.transform, TauntEmoji);
         tauntCooldownLeft = tauntCooldown;
         PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
 
@@ -475,6 +487,9 @@ public class PlayerController : MonoBehaviour {
 
     public void OnTriggerEnter(Collider other){
         if (other.gameObject.CompareTag("DeathZone")) {
+            // Killer = the opposite side.
+            PlayerController killer = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+            EmojiReaction.Spawn(killer.player.transform, KillEmoji);
             Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
             gameObject.SetActive(false);
             ResetPosition();
@@ -483,6 +498,9 @@ public class PlayerController : MonoBehaviour {
             Tools.CallDelayed(() => { gameObject.SetActive(true); }, 1f);
         }
         else if (other.gameObject.name == "Coin") {
+            // Personal-touch reaction: show the player's own emoji.
+            string sym = string.IsNullOrEmpty(profileEmoji) ? CoinFallback : profileEmoji;
+            EmojiReaction.Spawn(player.transform, sym);
             other.gameObject.GetComponent<Coin>().ChangePosition();
             int mult = Time.time < doubleScoreUntil ? 2 : 1;
             Game.instance.AddScore(side, mult);
@@ -508,6 +526,7 @@ public class PlayerController : MonoBehaviour {
             var other = collision.gameObject.GetComponent<PlayerController>()
                         ?? collision.gameObject.GetComponentInParent<PlayerController>();
             if (other != null && other != this) {
+                EmojiReaction.Spawn(player.transform, ShieldEmoji);
                 Vector3 dir = (other.player.transform.position - player.transform.position).normalized;
                 dir.y = 0;
                 other.rb.AddForce(dir * shieldReflectForce, ForceMode.Impulse);

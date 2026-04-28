@@ -9,6 +9,8 @@ using UnityEngine;
 // When the arcade cabinet is unified with other games (e.g. Jesse's dodgeball),
 // change FilePath to a shared location both exes agree on. That's the only
 // coupling point.
+public enum MatchOutcome { Win, Loss, Draw }
+
 public static class ArcadeProfileManager {
     const string FileName = "arcade_profiles.json";
 
@@ -53,6 +55,10 @@ public static class ArcadeProfileManager {
             createdAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             matchesPlayed = 0,
             wins          = 0,
+            losses        = 0,
+            draws         = 0,
+            points        = 0,
+            emoji         = EmojiPalette.Random(),
         };
         byUid[uid] = p;
         Save();
@@ -67,11 +73,24 @@ public static class ArcadeProfileManager {
         }
     }
 
-    public static void RecordMatchResult(string uid, bool win) {
+    public static void SetEmoji(string uid, string emoji) {
+        EnsureLoaded();
+        if (byUid.TryGetValue(uid, out var p)) {
+            p.emoji = emoji;
+            Save();
+        }
+    }
+
+    public static void RecordMatchResult(string uid, MatchOutcome outcome) {
         EnsureLoaded();
         if (!byUid.TryGetValue(uid, out var p)) return;
         p.matchesPlayed++;
-        if (win) p.wins++;
+        switch (outcome) {
+            case MatchOutcome.Win:  p.wins++;   p.points += 3; break;
+            case MatchOutcome.Loss: p.losses++; p.points -= 1; break;
+            case MatchOutcome.Draw: p.draws++;  p.points += 1; break;
+        }
+        if (p.points < 0) p.points = 0;
         Save();
     }
 

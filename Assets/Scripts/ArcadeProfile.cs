@@ -10,6 +10,10 @@ public class ArcadeProfile {
     public long   createdAtUnix;
     public int    matchesPlayed;
     public int    wins;
+    public int    losses;
+    public int    draws;
+    public int    points;
+    public string emoji;
 }
 
 [Serializable]

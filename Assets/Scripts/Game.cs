@@ -37,6 +37,9 @@ public class Game : MonoBehaviour {
     public CinemachineCamera mainVirtualCamera;
     public bool matchStarted = false, matchRunning = false;
 
+    // Wire a 3D-capable font asset here for floating emoji reactions; falls back to TMP_Settings.defaultFontAsset.
+    public TMP_FontAsset reactionFont;
+
     // public static Game CreateGame(){
     //     //create new GameObject with game component
     //     GameObject gameObject = new GameObject("Game");
@@ -73,8 +76,8 @@ public class Game : MonoBehaviour {
         playerRed.ResetPosition();
         // Profile fields get re-populated by NFCStartMatch; clear so non-NFC
         // starts don't carry over a stale name from the previous match.
-        playerBlue.profileUid = playerBlue.profileName = "";
-        playerRed.profileUid  = playerRed.profileName  = "";
+        playerBlue.profileUid = playerBlue.profileName = playerBlue.profileEmoji = "";
+        playerRed.profileUid  = playerRed.profileName  = playerRed.profileEmoji  = "";
         _instance = this;
         scores = Vector2.zero;
         timer = maxTime;
@@ -159,6 +162,7 @@ public class Game : MonoBehaviour {
     public void Start(){
         BuildNFCUI();
         BuildMatchNameLabels();
+        if (reactionFont != null) EmojiReaction.font = reactionFont;
         nfcReader = gameObject.AddComponent<NFCReader>();
         Reset();
     }
@@ -194,8 +198,13 @@ public class Game : MonoBehaviour {
     }
 
     void RefreshMatchNameLabels() {
-        if (_blueNameLabel) _blueNameLabel.text = string.IsNullOrEmpty(playerBlue.profileName) ? "BLUE" : playerBlue.profileName;
-        if (_redNameLabel)  _redNameLabel.text  = string.IsNullOrEmpty(playerRed.profileName)  ? "RED"  : playerRed.profileName;
+        if (_blueNameLabel) _blueNameLabel.text = BuildScoreboardLabel(playerBlue, "BLUE");
+        if (_redNameLabel)  _redNameLabel.text  = BuildScoreboardLabel(playerRed,  "RED");
+    }
+
+    static string BuildScoreboardLabel(PlayerController p, string fallback) {
+        if (string.IsNullOrEmpty(p.profileName)) return fallback;
+        return string.IsNullOrEmpty(p.profileEmoji) ? p.profileName : $"{p.profileEmoji} {p.profileName}";
     }
 
     public NFCReader nfcReader;
@@ -323,10 +332,12 @@ public class Game : MonoBehaviour {
             redWinUI.SetActive(false);
         }
         // Stats tracking — only counts matches that started via NFC (non-empty uid).
+        MatchOutcome blueOutcome = blueWon ? MatchOutcome.Win : redWon ? MatchOutcome.Loss : MatchOutcome.Draw;
+        MatchOutcome redOutcome  = redWon  ? MatchOutcome.Win : blueWon ? MatchOutcome.Loss : MatchOutcome.Draw;
         if (!string.IsNullOrEmpty(playerBlue.profileUid))
-            ArcadeProfileManager.RecordMatchResult(playerBlue.profileUid, blueWon);
+            ArcadeProfileManager.RecordMatchResult(playerBlue.profileUid, blueOutcome);
         if (!string.IsNullOrEmpty(playerRed.profileUid))
-            ArcadeProfileManager.RecordMatchResult(playerRed.profileUid, redWon);
+            ArcadeProfileManager.RecordMatchResult(playerRed.profileUid, redOutcome);
         matchRunning = false;
 
         playerBlue.gameObject.SetActive(true);
@@ -378,11 +389,13 @@ public class Game : MonoBehaviour {
         public NfcSlotState state = NfcSlotState.Empty;
         public string uid;
         public string name;
+        public string emoji;
         public bool   isNewPlayer;
         public void Clear() {
             state = NfcSlotState.Empty;
             uid = null;
             name = null;
+            emoji = null;
             isNewPlayer = false;
         }
     }
@@ -427,13 +440,17 @@ public class Game : MonoBehaviour {
         if (profile != null) {
             target.state       = NfcSlotState.Ready;
             target.name        = profile.name;
+            target.emoji       = string.IsNullOrEmpty(profile.emoji) ? EmojiPalette.Random() : profile.emoji;
             target.isNewPlayer = false;
+            // Backfill emoji for legacy profiles so it persists for next time.
+            if (string.IsNullOrEmpty(profile.emoji)) ArcadeProfileManager.SetEmoji(uid, target.emoji);
             NFCPlayerReadyFX(side);
             MaybeStart();
         }
         else {
             target.state       = NfcSlotState.PendingNewPlayer;
             target.name        = NameGenerator.Roll();
+            target.emoji       = EmojiPalette.Random();
             target.isNewPlayer = true;
             NFCSwipeFX(side); // gentle feedback; big flash only on confirm
         }
@@ -445,7 +462,10 @@ public class Game : MonoBehaviour {
         NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
         if (slot.state != NfcSlotState.PendingNewPlayer) return;
 
-        ArcadeProfileManager.Register(slot.uid, slot.name);
+        var p = ArcadeProfileManager.Register(slot.uid, slot.name);
+        // Honour the emoji rolled in the slot (so reroll picks before confirm stick).
+        if (!string.IsNullOrEmpty(slot.emoji)) ArcadeProfileManager.SetEmoji(slot.uid, slot.emoji);
+        else slot.emoji = p.emoji;
         slot.state       = NfcSlotState.Ready;
         slot.isNewPlayer = false;
         NFCPlayerReadyFX(side);
@@ -455,9 +475,16 @@ public class Game : MonoBehaviour {
 
     public void TryRerollNewPlayer(PlayerSide side) {
         NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
-        if (slot.state != NfcSlotState.PendingNewPlayer) return;
-
-        slot.name = NameGenerator.Roll();
+        // New player: reroll name AND emoji. Returning player: cycle emoji only and persist.
+        if (slot.state == NfcSlotState.PendingNewPlayer) {
+            slot.name  = NameGenerator.Roll();
+            slot.emoji = EmojiPalette.Random();
+        }
+        else if (slot.state == NfcSlotState.Ready && !string.IsNullOrEmpty(slot.uid)) {
+            slot.emoji = EmojiPalette.Random();
+            ArcadeProfileManager.SetEmoji(slot.uid, slot.emoji);
+        }
+        else return;
         var s = SoundSys.PlaySound("Coins");
         if (s != null) s.audioSource.volume = 0.35f;
         RebuildNFCLabels();
@@ -475,16 +502,23 @@ public class Game : MonoBehaviour {
     }
 
     static string BuildSlotText(string header, NfcSlot slot, string colorHex) {
+        string nameLine = string.IsNullOrEmpty(slot.emoji) ? slot.name : $"{slot.emoji} {slot.name}";
         switch (slot.state) {
             case NfcSlotState.Empty:
                 return $"{header}\n<size=36><color=#666>WAITING...</color></size>";
             case NfcSlotState.PendingNewPlayer:
-                return $"{header}\n<size=40>{slot.name}</size>\n" +
+                return $"{header}\n<size=40>{nameLine}</size>\n" +
                        $"<size=26><color=#FFCC55>NEW PLAYER</color></size>\n" +
                        $"<size=22><color={colorHex}>[BOMB] CONFIRM  [DASH] REROLL</color></size>";
             case NfcSlotState.Ready:
-                return $"{header}\n<size=40>{slot.name}</size>\n" +
-                       $"<size=28><color={colorHex}>READY!</color></size>";
+                var p = ArcadeProfileManager.Get(slot.uid);
+                string stats = p != null
+                    ? $"\n<size=22>W:{p.wins}  L:{p.losses}  D:{p.draws}   PTS {p.points}</size>"
+                    : "";
+                return $"{header}\n<size=40>{nameLine}</size>\n" +
+                       $"<size=28><color={colorHex}>READY!</color></size>" +
+                       stats +
+                       $"\n<size=20><color={colorHex}>[DASH] CHANGE EMOJI</color></size>";
         }
         return header;
     }
@@ -546,13 +580,15 @@ public class Game : MonoBehaviour {
 
             // StartMatch → Reset clears profile fields, so assign after and
             // refresh the scoreboard labels to reflect the NFC-chosen names.
-            string blueUid = blueSlot.uid, blueName = blueSlot.name;
-            string redUid  = redSlot.uid,  redName  = redSlot.name;
+            string blueUid = blueSlot.uid, blueName = blueSlot.name, blueEmoji = blueSlot.emoji;
+            string redUid  = redSlot.uid,  redName  = redSlot.name,  redEmoji  = redSlot.emoji;
             StartMatch();
-            playerBlue.profileUid  = blueUid;
-            playerBlue.profileName = blueName;
-            playerRed.profileUid   = redUid;
-            playerRed.profileName  = redName;
+            playerBlue.profileUid   = blueUid;
+            playerBlue.profileName  = blueName;
+            playerBlue.profileEmoji = blueEmoji;
+            playerRed.profileUid    = redUid;
+            playerRed.profileName   = redName;
+            playerRed.profileEmoji  = redEmoji;
             RefreshMatchNameLabels();
         }, 0.6f);
     }
