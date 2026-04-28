@@ -3,17 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
 using UnityEngine.Serialization;
+using UnityEngine.XR;
+using InputDevice = UnityEngine.InputSystem.InputDevice;
 
 public enum PlayerControlDevice {
     Keyboard,
-    Joystick,
+    Gamepad,
     AI
 }
 
 public enum PlayerSide {
-    Blue,
-    Red
+    Blue = 0,
+    Red = 1
 }
 
 public class PlayerController : MonoBehaviour {
@@ -35,26 +39,25 @@ public class PlayerController : MonoBehaviour {
     [System.NonSerialized] public string profileName  = "";
     [System.NonSerialized] public string profileEmoji = "";
 
+    public InputActionAsset input;
+    public InputAction movement, placeBomb, dash, shield, taunt;
+    public InputAction trackball;
+
     public GameObject BombPrefab;
 
-    // keys[0-3]: up/down/left/right  [4]: bomb  [5]: dash  [6]: shield  [7]: taunt
-    public KeyCode[] keys = new KeyCode[8];
 
-    public static Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
 
+    static readonly Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
+
+    // Used by Game.cs NFC mode for confirm (index 4) / reroll (index 5) per side.
+    // Indexes: [0-3] up/down/left/right  [4] bomb  [5] dash  [6] shield  [7] taunt.
     public static KeyCode[] blueKeys = {
         KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D,
-        KeyCode.Space,
-        KeyCode.LeftShift,
-        KeyCode.LeftControl,
-        KeyCode.Z
+        KeyCode.Space, KeyCode.LeftShift, KeyCode.LeftControl, KeyCode.Z
     };
     public static KeyCode[] redKeys = {
         KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow,
-        KeyCode.Return,
-        KeyCode.RightShift,
-        KeyCode.RightControl,
-        KeyCode.Slash
+        KeyCode.Return, KeyCode.RightShift, KeyCode.RightControl, KeyCode.Slash
     };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
@@ -93,6 +96,8 @@ public class PlayerController : MonoBehaviour {
         if (rb != null) rb.mass = baseMass;
     }
 
+    public int gamePadIndex;
+
     public void Awake(){
         Init();
     }
@@ -114,7 +119,8 @@ public class PlayerController : MonoBehaviour {
     public void Init(){
         // mr = player.GetComponentInChildren<MeshRenderer>();
         rb = player.GetComponent<Rigidbody>();
-        keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // keys = (side == PlayerSide.Blue) ? blueKeys : redKeys;
+        // input.SwitchCurrentActionMap(side == PlayerSide.Blue ? "BluePlayer" : "RedPlayer");
         baseAcc = acc;
         baseMaxSpeed = maxSpeed;
         baseMass = rb.mass;
@@ -124,6 +130,31 @@ public class PlayerController : MonoBehaviour {
             originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
+
+        if (device == PlayerControlDevice.Gamepad) {
+            // input.user.UnpairDevices();
+            // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
+            Gamepad pad = Gamepad.all[gamePadIndex];
+            var cloned = Instantiate(input).FindActionMap("PlayerMovement");
+            movement = cloned.FindAction("Movement");
+            placeBomb = cloned.FindAction("PlaceBomb");
+            dash = cloned.FindAction("Dash");
+            shield = cloned.FindAction("Shield");
+            // taunt = cloned.FindAction("Taunt");
+            trackball = cloned.FindAction("Trackball");
+            // foreach (var action in cloned.actionMaps) {
+            //     action.ApplyBindingOverride(new InputBinding() {
+            //         overrideInteractions = "",
+            //         groups = "Gamepad"
+            //     });
+            // }
+            // InputSystem.AddDevice(pad);
+            cloned.devices = new[] {
+                pad, (InputDevice)Keyboard.current
+            };
+            cloned.Enable();
+        }
+
     }
 
     static readonly int buffColorId = Shader.PropertyToID("_Color");
@@ -135,6 +166,11 @@ public class PlayerController : MonoBehaviour {
     public float invincibleUntil = 0f;
     public float speedBoostMultiplier = 1.5f;
 
+    // Most-recently-applied durations for each buff. Used by PickupHUD to compute progress bar fill.
+    [HideInInspector] public float speedBoostDuration = 0f;
+    [HideInInspector] public float invincibleDuration = 0f;
+    [HideInInspector] public float doubleScoreDuration = 0f;
+
     // Baselines captured in Init so runtime values are always derived from a known-good source,
     // never from a possibly-already-boosted "current" value. Prevents compounding stack bugs.
     float baseAcc, baseMaxSpeed, baseMass;
@@ -144,15 +180,18 @@ public class PlayerController : MonoBehaviour {
 
     public void ApplySpeedBoost(float duration, float multiplier){
         speedBoostUntil = Time.time + duration;
+        speedBoostDuration = duration;
         speedBoostMultiplier = multiplier;
     }
 
     public void ApplyInvincibility(float duration){
         invincibleUntil = Time.time + duration;
+        invincibleDuration = duration;
     }
 
     public void ApplyDoubleScore(float duration){
         doubleScoreUntil = Time.time + duration;
+        doubleScoreDuration = duration;
     }
 
     void UpdateBuffs(){
@@ -173,8 +212,8 @@ public class PlayerController : MonoBehaviour {
         lastBuffVisual = current;
         Color c = current switch {
             BuffVisual.Invincible => new Color(2f, 2f, 2f),
-            BuffVisual.SpeedBoost => new Color(2f, 1.5f, 0.2f),
-            BuffVisual.DoubleScore => new Color(0.2f, 2f, 0.2f),
+            BuffVisual.SpeedBoost => new Color(0.2f, 2f, 0.2f),
+            BuffVisual.DoubleScore => new Color(2f, 1.5f, 0.2f),
             _ => Color.clear
         };
         var mats = mr.materials;
@@ -187,9 +226,10 @@ public class PlayerController : MonoBehaviour {
 
     public void SetSmokeIntensitySmooth(float targetIntensity, float duration){
         if (smokeCoroutine != null) {
-            Tools.callDelayedHelper.StopCoroutine(smokeCoroutine);
+            StopCoroutine(smokeCoroutine);
         }
         smokeCoroutine = Tools.callDelayedHelper.StartCoroutine(SmoothIntensity(targetIntensity, duration));
+
     }
 
     IEnumerator SmoothIntensity(float targetIntensity, float duration){
@@ -213,21 +253,21 @@ public class PlayerController : MonoBehaviour {
     public bool bombPlaced = false;
 
     // ── Dash ──────────────────────────────────────────────────────────────
-    public float dashForce        = 28f;
-    public float dashCooldown     = 2f;
-    float        dashCooldownLeft = 0f;
+    public float dashForce = 28f;
+    public float dashCooldown = 2f;
+    float dashCooldownLeft = 0f;
 
     // ── Shield ────────────────────────────────────────────────────────────
-    public float shieldDuration    = 1.5f;
-    public float shieldCooldown    = 4f;
+    public float shieldDuration = 1.5f;
+    public float shieldCooldown = 4f;
     public float shieldReflectForce = 18f;
-    float        shieldCooldownLeft = 0f;
-    public bool  shieldActive       = false;
-    float        shieldActiveLeft   = 0f;
+    float shieldCooldownLeft = 0f;
+    public bool shieldActive = false;
+    float shieldActiveLeft = 0f;
 
     // ── Taunt ─────────────────────────────────────────────────────────────
-    public float tauntCooldown     = 3f;
-    float        tauntCooldownLeft = 0f;
+    public float tauntCooldown = 3f;
+    float tauntCooldownLeft = 0f;
 
     public float doubleScoreUntil = 0f;
 
@@ -246,9 +286,9 @@ public class PlayerController : MonoBehaviour {
 
     void Update(){
         // Cooldown timers (unscaled so they tick during pause-exempt moments, scaled otherwise)
-        dashCooldownLeft   = Mathf.Max(0, dashCooldownLeft   - Time.deltaTime);
+        dashCooldownLeft = Mathf.Max(0, dashCooldownLeft - Time.deltaTime);
         shieldCooldownLeft = Mathf.Max(0, shieldCooldownLeft - Time.deltaTime);
-        tauntCooldownLeft  = Mathf.Max(0, tauntCooldownLeft  - Time.deltaTime);
+        tauntCooldownLeft = Mathf.Max(0, tauntCooldownLeft - Time.deltaTime);
 
         // Shield active timer
         if (shieldActive) {
@@ -256,30 +296,51 @@ public class PlayerController : MonoBehaviour {
             if (shieldActiveLeft <= 0f) shieldActive = false;
         }
 
-        if (device == PlayerControlDevice.Keyboard) {
-            direction = Vector3.zero;
-            if (Input.GetKey(keys[0])) direction -= Vector3.forward;
-            if (Input.GetKey(keys[1])) direction -= Vector3.back;
-            if (Input.GetKey(keys[2])) direction -= Vector3.left;
-            if (Input.GetKey(keys[3])) direction -= Vector3.right;
-
-            if (!Game.instance.matchRunning) return;
-
-            // Bomb
-            if (!bombPlaced && Input.GetKeyDown(keys[4])) {
+        // if (device == PlayerControlDevice.Keyboard) {
+        //     direction = Vector3.zero;
+        //     if (Input.GetKey(keys[0])) direction -= Vector3.forward;
+        //     if (Input.GetKey(keys[1])) direction -= Vector3.back;
+        //     if (Input.GetKey(keys[2])) direction -= Vector3.left;
+        //     if (Input.GetKey(keys[3])) direction -= Vector3.right;
+        //
+        //     if (!Game.instance.matchRunning) return;
+        //
+        //     // Bomb
+        //     if (!bombPlaced && Input.GetKeyDown(keys[4])) {
+        //         Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
+        //         bombPlaced = true;
+        //     }
+        //     // Dash
+        //     if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
+        //         PerformDash();
+        //     }
+        //     // Shield
+        //     if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
+        //         ActivateShield();
+        //     }
+        //     // Taunt
+        //     if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
+        //         PerformTaunt();
+        //     }
+        // }
+        if (device == PlayerControlDevice.Gamepad) {
+            var v = movement.ReadValue<Vector2>();
+            // Debug.Log("Side: " + side + ", " + v);
+            direction = new Vector3(-v.x, 0, -v.y);
+            if (!bombPlaced && placeBomb.WasPressedThisFrame() && Game.instance.matchRunning) {
                 Instantiate(BombPrefab, player.transform.position, BombPrefab.transform.rotation);
                 bombPlaced = true;
             }
-            // Dash
-            if (Input.GetKeyDown(keys[5]) && dashCooldownLeft <= 0f) {
+
+            if (!bombPlaced && dash.WasPressedThisFrame() && Game.instance.matchRunning) {
                 PerformDash();
             }
-            // Shield
-            if (Input.GetKeyDown(keys[6]) && shieldCooldownLeft <= 0f) {
+
+            if (!bombPlaced && shield.WasPressedThisFrame() && Game.instance.matchRunning) {
                 ActivateShield();
             }
-            // Taunt
-            if (Input.GetKeyDown(keys[7]) && tauntCooldownLeft <= 0f) {
+
+            if (!bombPlaced && taunt.WasPressedThisFrame() && Game.instance.matchRunning) {
                 PerformTaunt();
             }
 
@@ -287,6 +348,7 @@ public class PlayerController : MonoBehaviour {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
         }
+
     }
 
     void FixedUpdate(){
@@ -299,7 +361,7 @@ public class PlayerController : MonoBehaviour {
             CalculateAcc();
             UpdateHeadAnimation();
 
-            if (device == PlayerControlDevice.Keyboard) {
+            if (device == PlayerControlDevice.Keyboard || device == PlayerControlDevice.Gamepad) {
                 rb.AddForce(direction.normalized * acc, ForceMode.Acceleration);
             }
             else if (device == PlayerControlDevice.AI) {
@@ -402,10 +464,9 @@ public class PlayerController : MonoBehaviour {
         PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
         Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
         toOpponent.y = 0;
-        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized :
-                    (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
         rb.linearVelocity = d * dashForce;
-        dashCooldownLeft  = dashCooldown;
+        dashCooldownLeft = dashCooldown;
 
         SoundSys.PlaySound("Hit").audioSource.volume = 0.5f;
         CameraShake.Shake(0.35f, 0.18f);
@@ -426,9 +487,9 @@ public class PlayerController : MonoBehaviour {
     }
 
     // ── Shield ────────────────────────────────────────────────────────────
-    public void ActivateShield() {
-        shieldActive       = true;
-        shieldActiveLeft   = shieldDuration;
+    public void ActivateShield(){
+        shieldActive = true;
+        shieldActiveLeft = shieldDuration;
         shieldCooldownLeft = shieldCooldown;
 
         SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
@@ -524,7 +585,7 @@ public class PlayerController : MonoBehaviour {
         // Shield reflect: push the colliding player away
         if (shieldActive && collision.gameObject.CompareTag("Player")) {
             var other = collision.gameObject.GetComponent<PlayerController>()
-                        ?? collision.gameObject.GetComponentInParent<PlayerController>();
+                ?? collision.gameObject.GetComponentInParent<PlayerController>();
             if (other != null && other != this) {
                 EmojiReaction.Spawn(player.transform, ShieldEmoji);
                 Vector3 dir = (other.player.transform.position - player.transform.position).normalized;
@@ -549,10 +610,11 @@ public class PlayerController : MonoBehaviour {
                 Game.instance.BlinkScreen(BlinkSide.Fullscreen);
             }
         }
-
         if (collision.gameObject.CompareTag("Wall")) {
             Wall wall = collision.gameObject.GetComponent<Wall>();
-            if (wall == null) wall = collision.gameObject.GetComponentInParent<Wall>();
+            if (wall == null) {
+                wall = collision.gameObject.GetComponentInParent<Wall>();
+            }
             wall?.SetOutlineBlink(side);
         }
     }

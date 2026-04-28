@@ -5,6 +5,8 @@ using System.Linq;
 using TMPro;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -34,6 +36,9 @@ public class Game : MonoBehaviour {
     public List<Wall> walls = new List<Wall>();
     public GameObject cameraDefaultTarget, playerCombinedTarget;
 
+    public InputActionAsset input;
+    public InputAction leftAction, rightAction, selectAction, escapeAction, nfcAction;
+
     public CinemachineCamera mainVirtualCamera;
     public bool matchStarted = false, matchRunning = false;
 
@@ -54,6 +59,20 @@ public class Game : MonoBehaviour {
             return;
         }
         _instance = this;
+
+        Cursor.lockState = CursorLockMode.Locked;
+
+        var cloned = Instantiate(input).FindActionMap("UIActionMap");
+        leftAction = cloned.FindAction("Left");
+        rightAction = cloned.FindAction("Right");
+        selectAction = cloned.FindAction("Select");
+        escapeAction = cloned.FindAction("Escape");
+        nfcAction = cloned.FindAction("NFC");
+        cloned.devices = new[] {
+            Gamepad.all[0], Gamepad.all[1], (InputDevice)Keyboard.current
+        };
+        cloned.Enable();
+
     }
 
     public void BlinkScreen(BlinkSide side){
@@ -102,7 +121,7 @@ public class Game : MonoBehaviour {
     GameObject _nfcRoot;
     TextMeshProUGUI _nfcTitle, _nfcBlueLabel, _nfcRedLabel;
 
-    void BuildNFCUI() {
+    void BuildNFCUI(){
         // Parent to the same canvas as the other UI panels
         Transform canvas = beforeMatchUI.transform.parent;
 
@@ -141,7 +160,7 @@ public class Game : MonoBehaviour {
     }
 
     TextMeshProUGUI CreateLabel(Transform parent, string name, TMP_FontAsset font,
-        Material fontMat, float size, Color color, Vector2 anchorPos) {
+        Material fontMat, float size, Color color, Vector2 anchorPos){
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
         var rect = go.AddComponent<RectTransform>();
@@ -280,8 +299,8 @@ public class Game : MonoBehaviour {
 
         Tools.CallDelayed(() => {
             matchRunning = true;
-            beforeMatchUI.SetActive(false);
-            matchUI.SetActive(true);
+            beforeMatchUI?.SetActive(false);
+            matchUI?.SetActive(true);
             coin.transform.position = new Vector3(0f, 2.5f + Mathf.Sin(Time.time * 2) * 0.15f, 0);
             coin.SetActive(true);
             Tools.CallDelayed(() => {
@@ -563,7 +582,7 @@ public class Game : MonoBehaviour {
         if (!nfcMode) return;
 
         // Brief "GO!" flash before hiding NFC UI
-        _nfcTitle.text  = "GO!";
+        _nfcTitle.text = "GO!";
         _nfcTitle.color = new Color(0, 1f, 0.3f);
         BlinkScreen(BlinkSide.Fullscreen);
         CameraShake.Shake(0.4f, 0.2f);
@@ -573,8 +592,8 @@ public class Game : MonoBehaviour {
             nfcMode = false;
             _nfcRoot.SetActive(false);
 
-            playerBlue.device = PlayerControlDevice.Keyboard;
-            playerRed.device  = PlayerControlDevice.Keyboard;
+            playerBlue.device = PlayerControlDevice.Gamepad;
+            playerRed.device = PlayerControlDevice.Gamepad;
             playerBlue.Init();
             playerRed.Init();
 
@@ -594,16 +613,13 @@ public class Game : MonoBehaviour {
     }
 
     public void Update(){
-        if (Input.GetKeyDown(KeyCode.R)) {
+        if (((!matchRunning || !matchStarted) && !selectedSingleMode && selectAction.WasPressedThisFrame())) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        if (Input.GetKeyDown(KeyCode.F11)) {
-            Screen.fullScreen = !Screen.fullScreen;
-        }
         if (nfcMode) {
-            if (Input.GetKeyDown(KeyCode.Escape)) {
+            if (escapeAction.WasPressedThisFrame()) {
                 nfcMode = false;
                 Reset();
                 return;
@@ -617,7 +633,7 @@ public class Game : MonoBehaviour {
             return;
         }
         if (matchStarted) {
-            if (Input.GetKeyDown(KeyCode.Escape)) {
+            if (escapeAction.WasPressedThisFrame()) {
                 matchRunning = !matchRunning;
                 timerText.text = "PAUSED";
                 timerText.ForceMeshUpdate();
@@ -632,9 +648,9 @@ public class Game : MonoBehaviour {
                 }
             }
         }
-        else if (Input.GetKeyDown(KeyCode.Q)) {
+        else if (leftAction.WasPressedThisFrame()) {
             if (selectedSingleMode) {
-                playerBlue.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.18f;
                 playerRed.Init();
@@ -646,22 +662,25 @@ public class Game : MonoBehaviour {
                 difficultyUI.SetActive(true);
             }
         }
-        else if (Input.GetKeyDown(KeyCode.E)) {
+        else if (rightAction.WasPressedThisFrame()) {
             if (selectedSingleMode) {
-                playerBlue.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
                 playerRed.aiDecisionInterval = 0.05f;
                 playerRed.Init();
                 StartMatch();
             }
             else {
-                playerBlue.device = PlayerControlDevice.Keyboard;
-                playerRed.device = PlayerControlDevice.Keyboard;
+                playerBlue.device = PlayerControlDevice.Gamepad;
+                playerRed.device = PlayerControlDevice.Gamepad;
                 playerRed.Init();
                 StartMatch();
             }
         }
-        else if (Input.GetKeyDown(KeyCode.F) && selectedSingleMode) {
+        else if (nfcAction.WasPressedThisFrame() && !selectedSingleMode) {
+            EnterNFCMode();
+        }
+        else if (selectAction.WasPressedThisFrame() && selectedSingleMode) {
             playerRed.device = PlayerControlDevice.AI;
             playerRed.aiDecisionInterval = 0.01f;
             playerRed.Init();
