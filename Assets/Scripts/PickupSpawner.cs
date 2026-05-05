@@ -4,6 +4,17 @@ using UnityEngine;
 // Spawner — periodically drops a random pickup near the losing player.
 // Attach to any GameObject in the scene and assign the three prefabs in the inspector.
 public class PickupSpawner : MonoBehaviour {
+    public static PickupSpawner instance;
+
+     void Awake(){
+        if (instance != null) {
+            Debug.LogError("Multiple PickupSpawners in scene! This is not intended.");
+            Destroy(this);
+            return;
+        }
+        instance = this;
+    }
+    
     public GameObject speedBoostPrefab;
     public GameObject doubleScorePrefab;
     public GameObject invincibilityPrefab;
@@ -27,6 +38,15 @@ public class PickupSpawner : MonoBehaviour {
     }
 
     void OnDisable(){
+        Reset();
+    }
+
+    public void Reset(){
+        foreach (var pickup in alive) {
+            if (pickup) {
+                try{Destroy(pickup.gameObject);}finally{}
+            }
+        }
         alive.Clear();
         timer = 0f;
     }

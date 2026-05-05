@@ -47,7 +47,7 @@ public class PlayerController : MonoBehaviour {
 
 
 
-    static readonly Vector3 blueBirthPoint = new Vector3(10, 1.7f, 0), redBirthPoint = new Vector3(-10f, 1.7f, 0);
+    static readonly Vector3 blueBirthPoint = new Vector3(10, 2f, 0), redBirthPoint = new Vector3(-10f, 2f, 0);
 
     // Used by Game.cs NFC mode for confirm (index 4) / reroll (index 5) per side.
     // Indexes: [0-3] up/down/left/right  [4] bomb  [5] dash  [6] shield  [7] taunt.
@@ -134,7 +134,6 @@ public class PlayerController : MonoBehaviour {
         if (device == PlayerControlDevice.Gamepad) {
             // input.user.UnpairDevices();
             // InputUser.PerformPairingWithDevice(Gamepad.all[(int)side], input.user);
-            Gamepad pad = Gamepad.all[gamePadIndex];
             var cloned = Instantiate(input).FindActionMap("PlayerMovement");
             movement = cloned.FindAction("Movement");
             placeBomb = cloned.FindAction("PlaceBomb");
@@ -150,7 +149,7 @@ public class PlayerController : MonoBehaviour {
             // }
             // InputSystem.AddDevice(pad);
             cloned.devices = new[] {
-                pad, (InputDevice)Keyboard.current
+                gamePadIndex == 0? Gamepad.all[0] : Joystick.all[0], (InputDevice)Keyboard.current
             };
             cloned.Enable();
         }

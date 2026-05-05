@@ -106,7 +106,7 @@ Material:
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 7
+    - _StencilVal: 8
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0

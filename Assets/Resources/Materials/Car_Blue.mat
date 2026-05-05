@@ -104,7 +104,7 @@ Material:
     - _SmoothNormalDiffuse: 0
     - _SmoothNormalShadow: 0
     - _SmoothNormalSpecular: 0
-    - _StencilVal: 5
+    - _StencilVal: 6
     - _UnpackNormal: 0
     - _UseNormalMap: 0
     - _UseSmoothedNormal: 0
@@ -148,7 +148,7 @@ Material:
     - _NormalBias: 0
     - _NormalMapStrength: 1
     - _OcclusionStrength: 1
-    - _OuterStencilComp: 8
+    - _OuterStencilComp: 6
     - _OuterWidth: 6
     - _OuterZOffset: 0
     - _Parallax: 0.005

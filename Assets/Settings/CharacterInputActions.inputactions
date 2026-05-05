@@ -75,6 +75,17 @@
                 },
                 {
                     "name": "",
+                    "id": "91f9345f-4ba3-4861-a9bb-45b35762ec49",
+                    "path": "<Joystick>/stick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Movement",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "9bef5215-9147-4649-85f2-59c179a96ced",
                     "path": "<Gamepad>/buttonSouth",
                     "interactions": "",
@@ -99,6 +110,17 @@
                     "name": "",
                     "id": "b652c00c-0f44-40da-b835-122a70fd3739",
                     "path": "<Keyboard>/enter",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PlaceBomb",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "76d00b63-3c22-4d54-a3d3-ba1622af299b",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/trigger",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -141,6 +163,17 @@
                 },
                 {
                     "name": "",
+                    "id": "3b36fb89-0ff2-4850-85ab-6a62c886f456",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Dash",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "fac440e0-d039-4cfe-8397-52d8f594096a",
                     "path": "<Mouse>/delta",
                     "interactions": "",
@@ -163,8 +196,30 @@
                 },
                 {
                     "name": "",
+                    "id": "000339cc-a715-46c1-9153-1e389596d7a9",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Shield",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "cec95de2-339e-4c20-b62f-924a06513584",
                     "path": "<Gamepad>/buttonNorth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Taunt",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d51e88c0-8ea6-421d-b7a6-604a0896ad4b",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button4",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

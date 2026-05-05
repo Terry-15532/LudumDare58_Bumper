@@ -69,7 +69,7 @@ public class Game : MonoBehaviour {
         escapeAction = cloned.FindAction("Escape");
         nfcAction = cloned.FindAction("NFC");
         cloned.devices = new[] {
-            Gamepad.all[0], Gamepad.all[1], (InputDevice)Keyboard.current
+            Joystick.all[0], Joystick.all[0], (InputDevice)Keyboard.current
         };
         cloned.Enable();
 
@@ -113,6 +113,7 @@ public class Game : MonoBehaviour {
         matchRunning = false;
         selectedSingleMode = false;
         difficultyUI.SetActive(false);
+        PickupSpawner.instance.Reset();
         if (_nfcRoot) _nfcRoot.SetActive(false);
         Time.timeScale = 1f;
     }
@@ -335,6 +336,10 @@ public class Game : MonoBehaviour {
         mainVirtualCamera.Follow = cameraDefaultTarget.transform;
         bool blueWon = scores.x > scores.y;
         bool redWon  = scores.y > scores.x;
+        
+        coin.gameObject.SetActive(false);
+        PickupSpawner.instance.Reset();
+        
         if (blueWon) {
             blueWinUI.SetActive(true);
             redWinUI.SetActive(false);
@@ -613,7 +618,7 @@ public class Game : MonoBehaviour {
     }
 
     public void Update(){
-        if (((!matchRunning || !matchStarted) && !selectedSingleMode && selectAction.WasPressedThisFrame())) {
+        if (!matchRunning && !selectedSingleMode && !countdownText.IsActive() && selectAction.WasPressedThisFrame()) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -632,7 +637,7 @@ public class Game : MonoBehaviour {
             if (Input.GetKeyDown(PlayerController.redKeys[5]))  TryRerollNewPlayer(PlayerSide.Red);
             return;
         }
-        if (matchStarted) {
+        if (matchStarted && !countdownText.IsActive() ) {
             if (escapeAction.WasPressedThisFrame()) {
                 matchRunning = !matchRunning;
                 timerText.text = "PAUSED";
@@ -648,7 +653,7 @@ public class Game : MonoBehaviour {
                 }
             }
         }
-        else if (leftAction.WasPressedThisFrame()) {
+        else if (leftAction.WasPressedThisFrame() && !countdownText.IsActive()) {
             if (selectedSingleMode) {
                 playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
@@ -662,7 +667,7 @@ public class Game : MonoBehaviour {
                 difficultyUI.SetActive(true);
             }
         }
-        else if (rightAction.WasPressedThisFrame()) {
+        else if (rightAction.WasPressedThisFrame() && !countdownText.IsActive()) {
             if (selectedSingleMode) {
                 playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;

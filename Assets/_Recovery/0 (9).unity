@@ -313,7 +313,6 @@ MonoBehaviour:
   mainVirtualCamera: {fileID: 372232034}
   matchStarted: 0
   matchRunning: 0
-  reactionFont: {fileID: 0}
   nfcReader: {fileID: 0}
   selectedSingleMode: 0
   nfcMode: 0
@@ -797,7 +796,7 @@ Transform:
   m_GameObject: {fileID: 85688525}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.70710576, z: -0, w: 0.7071079}
-  m_LocalPosition: {x: 10, y: 2, z: 0}
+  m_LocalPosition: {x: 10, y: 1.6, z: 0}
   m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -1605,7 +1604,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.97236997, z: -0.23344536, w: 0}
-  m_LocalPosition: {x: 0, y: 18.797646, z: 32.967236}
+  m_LocalPosition: {x: 0, y: 18.397644, z: 32.96723}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2017,7 +2016,7 @@ Transform:
   m_GameObject: {fileID: 372232032}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.97236997, z: -0.23344536, w: 0}
-  m_LocalPosition: {x: 0, y: 18.797646, z: 32.967236}
+  m_LocalPosition: {x: 0, y: 18.397644, z: 32.96723}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6052,7 +6051,7 @@ MonoBehaviour:
   amplitude: 0.15
   requireMouseButton: 0
   useRigidbodyMovement: 1
-  forceSensitivity: -100
+  forceSensitivity: -10
   forceMode: 5
   maxSpeed: 10
   linearDrag: 1
@@ -7242,7 +7241,7 @@ Transform:
   m_GameObject: {fileID: 1308186017}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalPosition: {x: 0, y: 1.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11024,7 +11023,7 @@ Transform:
   m_GameObject: {fileID: 8894761913051218846}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071058, z: -0, w: 0.70710784}
-  m_LocalPosition: {x: -10, y: 2, z: 0}
+  m_LocalPosition: {x: -10, y: 1.6, z: 0}
   m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
   m_ConstrainProportionsScale: 1
   m_Children:

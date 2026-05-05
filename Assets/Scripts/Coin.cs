@@ -167,7 +167,7 @@ public class Coin : MonoBehaviour{
         vfx = Instantiate(vfx, transform.position, Quaternion.identity);
         gameObject.SetActive(false);
         Tools.CallDelayed(() => {
-            if (Game.instance.matchStarted){
+            if (Game.instance.matchStarted && Game.instance.matchRunning){
                 Vector3 newPos = new Vector3(Tools.RandomNum(-10, 10), transform.position.y, Tools.RandomNum(-6, 6));
                 transform.position = newPos;
                 if (rb != null) rb.position = new Vector3(newPos.x, newPos.y, newPos.z);

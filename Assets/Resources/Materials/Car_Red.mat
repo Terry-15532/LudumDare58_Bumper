@@ -14,6 +14,7 @@ Material:
   m_ValidKeywords:
   - _CAST_SHADOW
   - _RCV_SHADOW
+  - _SHOW_OUTLINE_INNER
   - _SHOW_OUTLINE_OUTER
   - _SHOW_SPECULAR
   m_InvalidKeywords: []
@@ -28,22 +29,26 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints:
-    - _ShowInnerOutline: 0
+    - _ShowInnerOutline: 1
+    - _ShowOuterOutline: 1
     - _StencilVal: 7
+    - _UseSmoothedNormal: 0
     m_Floats:
     - _CullMode: 2
     - _DiffuseHardness: 0.863
     - _DiffuseOffset: 0.6
     - _DiffuseRange: 1.59
     - _DiffuseStrength: 3.09
-    - _InnerStencilComp: 1
-    - _InnerWidth: 6
-    - _OuterStencilComp: 8
+    - _InnerStencilComp: 3
+    - _InnerWidth: 3
+    - _InnerZOffset: 1
+    - _OuterStencilComp: 6
     - _OuterWidth: 6
     - _ZTest: 4
     m_Colors:
     - _Color: {r: 0.638814, g: 0, b: 0, a: 1}
     - _DiffuseColor: {r: 0.15363872, g: 0, b: 0, a: 1}
+    - _InnerOutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShadowColor: {r: 0, g: 0, b: 0, a: 0.3}
     - _SpecularColor: {r: 1, g: 0.35444742, b: 0.35444742, a: 1}
   m_BuildTextureStacks: []

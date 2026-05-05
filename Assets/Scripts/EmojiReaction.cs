@@ -11,6 +11,11 @@ public class EmojiReaction : MonoBehaviour {
     float t0, lifetime = 1.0f;
     Vector3 baseOffset = Vector3.up * 1.5f;
     TextMeshPro tmp;
+    Camera _cam;
+
+    void Start(){
+        _cam = Camera.main;
+    }
 
     public static void Spawn(Transform anchor, string symbol, Color tint = default) {
         if (font == null) font = TMP_Settings.defaultFontAsset;
@@ -50,10 +55,9 @@ public class EmojiReaction : MonoBehaviour {
                     : t < 0.4f ? Mathf.Lerp(1.3f, 1.0f, (t - 0.2f) / 0.2f)
                     : t < 0.8f ? 1.0f
                     : Mathf.Lerp(1.0f, 0.6f, (t - 0.8f) / 0.2f);
-        transform.localScale = Vector3.one * scale;
+        transform.localScale = Vector3.one * (scale * 1.5f);
 
-        var cam = Camera.main;
-        if (cam != null) transform.rotation = Quaternion.LookRotation(transform.position - cam.transform.position);
+        if (_cam != null) transform.rotation = Quaternion.LookRotation(transform.position - _cam.transform.position);
 
         if (tmp != null) {
             var c = tmp.color;
