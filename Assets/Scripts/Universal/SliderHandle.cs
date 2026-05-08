@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class SliderHandle : Button {
+public class SliderHandle : CustomButton {
     public CustomUIElement track;
     public bool pressed;
     public Vector2 startPoint, endPoint;

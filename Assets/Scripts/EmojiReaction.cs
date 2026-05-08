@@ -7,7 +7,7 @@ public class EmojiReaction : MonoBehaviour {
     public static TMP_FontAsset font;
     public static TMP_SpriteAsset spriteAsset;
 
-    Transform anchor;
+    Vector3 anchor;
     float t0, lifetime = 1.0f;
     Vector3 baseOffset = Vector3.up * 1.5f;
     TextMeshPro tmp;
@@ -26,7 +26,7 @@ public class EmojiReaction : MonoBehaviour {
         var go = new GameObject("EmojiReaction");
         go.transform.position = anchor.position + Vector3.up * 1.5f;
         var r = go.AddComponent<EmojiReaction>();
-        r.anchor = anchor;
+        r.anchor = anchor.position;
         r.t0 = Time.time;
 
         var tmp = go.AddComponent<TextMeshPro>();
@@ -48,8 +48,8 @@ public class EmojiReaction : MonoBehaviour {
         float t = (Time.time - t0) / lifetime;
         if (t >= 1f) { Destroy(gameObject); return; }
 
-        Vector3 anchorPos = anchor != null ? anchor.position : transform.position;
-        transform.position = anchorPos + baseOffset + Vector3.up * (t * 1.0f);
+        // Vector3 anchorPos = anchor != null ? anchor.position : transform.position;
+        transform.position = anchor + baseOffset + Vector3.up * (t * 3.0f);
 
         float scale = t < 0.2f ? Mathf.Lerp(0.3f, 1.3f, t / 0.2f)
                     : t < 0.4f ? Mathf.Lerp(1.3f, 1.0f, (t - 0.2f) / 0.2f)

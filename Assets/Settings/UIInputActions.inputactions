@@ -41,15 +41,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "NFC",
-                    "type": "Button",
-                    "id": "17e6d9a9-ac18-44b2-b1ad-fb7924d43781",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -68,6 +59,17 @@
                     "name": "",
                     "id": "08ec469c-d6d0-433d-a960-535e84dba115",
                     "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Select",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d503abb9-da5f-46bf-b958-02bb371b2a76",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button2",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -99,6 +101,17 @@
                 },
                 {
                     "name": "",
+                    "id": "b4606068-7f4c-4201-83ab-e5ae0a3b2e7a",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Left",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "a01f0162-e16f-47ee-8806-a3bf27d0337b",
                     "path": "<Gamepad>/buttonEast",
                     "interactions": "",
@@ -112,6 +125,17 @@
                     "name": "",
                     "id": "b65930aa-bc7a-4321-b212-14a992eeb31c",
                     "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Right",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "499f7288-3720-4be7-bf8c-f05b9a4a85d8",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button4",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -143,12 +167,12 @@
                 },
                 {
                     "name": "",
-                    "id": "dc029a13-5825-43ad-a0cf-1d849719542d",
-                    "path": "<Keyboard>/n",
+                    "id": "14ea1068-17f0-4c4a-985e-8250f766b4a0",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/trigger",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "NFC",
+                    "action": "Escape",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

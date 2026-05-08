@@ -120,7 +120,7 @@
                 {
                     "name": "",
                     "id": "76d00b63-3c22-4d54-a3d3-ba1622af299b",
-                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/trigger",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button3",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -164,7 +164,7 @@
                 {
                     "name": "",
                     "id": "3b36fb89-0ff2-4850-85ab-6a62c886f456",
-                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button2",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button4",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -196,17 +196,6 @@
                 },
                 {
                     "name": "",
-                    "id": "000339cc-a715-46c1-9153-1e389596d7a9",
-                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button3",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Shield",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "cec95de2-339e-4c20-b62f-924a06513584",
                     "path": "<Gamepad>/buttonNorth",
                     "interactions": "",
@@ -219,7 +208,7 @@
                 {
                     "name": "",
                     "id": "d51e88c0-8ea6-421d-b7a6-604a0896ad4b",
-                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button4",
+                    "path": "<HID::DragonRise Inc.   Generic   USB  Joystick  >/button2",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

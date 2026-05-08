@@ -162,7 +162,7 @@ public class Coin : MonoBehaviour{
         // stop any momentum when changing position
         if (rb != null) rb.linearVelocity = Vector3.zero;
 
-        SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
+        SoundSys.PlaySound("Coins").audioSource.volume = 0.3f;
         var vfx = Resources.Load<GameObject>("Prefabs/CoinVFX");
         vfx = Instantiate(vfx, transform.position, Quaternion.identity);
         gameObject.SetActive(false);

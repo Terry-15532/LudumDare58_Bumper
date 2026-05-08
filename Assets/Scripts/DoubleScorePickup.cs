@@ -6,7 +6,7 @@ public class DoubleScorePickup : PickupBase {
     public float duration = 6f;
 
     protected override void ApplyEffect(PlayerController p){
-        SoundSys.PlaySound("Coins").audioSource.volume = 0.5f;
+        SoundSys.PlaySound("Coins").audioSource.volume = 0.3f;
         p.ApplyDoubleScore(duration);
     }
 }

@@ -63,7 +63,6 @@ public class PickupHUD : MonoBehaviour {
         public Image[] segments;
         public Image sideStripOuter;
         public TextMeshProUGUI timeText;
-        public float duration;
         public Color accent;
         public bool leftSide;
         public bool dying;
@@ -83,6 +82,8 @@ public class PickupHUD : MonoBehaviour {
         }
         instance = this;
         BuildCanvas();
+        
+        DontDestroyOnLoad(this.gameObject);
     }
 
     void OnDestroy(){
@@ -107,22 +108,27 @@ public class PickupHUD : MonoBehaviour {
         rightCol = BuildColumn("RightColumn", false);
     }
 
-    RectTransform BuildColumn(string name, bool leftSide){
-        var go = new GameObject(name, typeof(RectTransform));
+    RectTransform BuildColumn(string colName, bool leftSide){
+        var go = new GameObject(colName, typeof(RectTransform));
         go.transform.SetParent(canvas.transform, false);
         var rt = (RectTransform)go.transform;
+        // Anchor both min/max y to the same value so the column's top is fixed at screen space 0.9
         rt.anchorMin = new Vector2(leftSide ? 0 : 1, 0.9f);
         rt.anchorMax = new Vector2(leftSide ? 0 : 1, 0.9f);
-        rt.pivot = new Vector2(leftSide ? 0 : 1, 0.5f);
+        // Use pivot.y = 1 so the column expands downward when children are added; this keeps the first
+        // entry's screen position fixed (new entries are appended below).
+        rt.pivot = new Vector2(leftSide ? 0 : 1, 1f);
         rt.anchoredPosition = new Vector2(leftSide ? 36 : -36, 0);
         rt.sizeDelta = new Vector2(PanelW + 40, 0);
         var vlg = go.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 16;
+        // Increase spacing between stacked entries so multiple effects are visually separated.
+        vlg.spacing = 24;
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
         vlg.childForceExpandWidth = false;
         vlg.childForceExpandHeight = false;
-        vlg.childAlignment = leftSide ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight;
+        // Align children to the top so the first item stays pinned at the top of the column.
+        vlg.childAlignment = leftSide ? TextAnchor.UpperLeft : TextAnchor.UpperRight;
         var fitter = go.AddComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         return rt;
@@ -132,8 +138,8 @@ public class PickupHUD : MonoBehaviour {
         if (Game.instance == null) return;
         var blue = Game.instance.playerBlue;
         var red = Game.instance.playerRed;
-        if (blue != null) HandlePlayer(blue, leftCol, blueEntries, true);
-        if (red != null) HandlePlayer(red, rightCol, redEntries, false);
+        if (blue) HandlePlayer(blue, leftCol, blueEntries, true);
+        if (red) HandlePlayer(red, rightCol, redEntries, false);
         AnimateAll(blueEntries);
         AnimateAll(redEntries);
     }
@@ -152,10 +158,8 @@ public class PickupHUD : MonoBehaviour {
         if (active) {
             if (!has || entry.root == null) {
                 entry = BuildEntry(parent, leftSide, kind, p.side);
-                entry.duration = duration;
                 entries[kind] = entry;
             }
-            entry.duration = duration;
             float fraction = Mathf.Clamp01(remaining / duration);
             UpdateSegments(entry, fraction, remaining);
             entry.timeText.text = $"{remaining:0.0}s";
@@ -253,7 +257,7 @@ public class PickupHUD : MonoBehaviour {
         BuildHaloLayer(root.transform, sideColor, 0.22f, 10f);
 
         // --- Panel background (two-tone inner for subtle depth) ---
-        var bg = AddImage(root.transform, "BG", PanelBG, full: true);
+        AddImage(root.transform, "BG", PanelBG, full: true);
         var bgIn = AddImage(root.transform, "BGInner", PanelBGInner);
         Inset(bgIn.rectTransform, 3f);
 
@@ -472,7 +476,7 @@ public class PickupHUD : MonoBehaviour {
         tmp.fontSize = size;
         tmp.color = color;
         tmp.fontStyle = style;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
         tmp.raycastTarget = false;
         return tmp;

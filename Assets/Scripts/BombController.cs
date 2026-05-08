@@ -15,7 +15,6 @@ public class BombController : MonoBehaviour {
     }
 
     IEnumerator BombActions(){
-        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.9f;
         var mats = Bomb.materials;
         float t = 0;
         while (t < flickerDuration) {
@@ -43,7 +42,7 @@ public class BombController : MonoBehaviour {
         p.rb.AddForce(dir * explosionForce / Mathf.Max(dist, 3f));
         Bomb.enabled = false;
         t = 0;
-        SoundSys.PlaySound("Explosion").audioSource.volume = 0.4f;
+        SoundSys.PlaySound("Explosion").audioSource.volume = 0.2f;
         CameraShake.Shake(0.6f, 0.3f);
         Game.instance.BlinkScreen(BlinkSide.Fullscreen);
         CameraShake.Shake(0.6f, 0.3f);

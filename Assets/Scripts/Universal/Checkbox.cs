@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
-
 using System.Reflection;
 
 
@@ -55,7 +54,7 @@ public class CheckboxInspector : Editor {
 }
 #endif
 
-public class Checkbox : Button {
+public class Checkbox : CustomButton {
     [Header("Is it a settings option?")]
     public bool changeSettings = true;
 

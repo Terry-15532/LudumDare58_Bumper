@@ -33,14 +33,14 @@ Material:
     - _BarrelAnimSpeed: 10
     - _BarrelDistortion: 0.5
     - _CRTIntensity: 0
-    - _CRTSpeed: 0.02
+    - _CRTSpeed: 0.0001
     - _ColorOffset: 0.00617
     - _Curvature: 0.124
-    - _Emission: 1
-    - _GlitchIntensity: 0.2
+    - _Emission: 1.5
+    - _GlitchIntensity: 0.166
     - _GlitchSpeed: 0.1
     - _ScanlineFrequency: 400
-    - _ScanlineIntensity: 0.878
+    - _ScanlineIntensity: 0.8
     - _ScanlineSpeed: 0.05
     - _Stencil: 0
     - _VignetteIntensity: 0

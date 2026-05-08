@@ -92,7 +92,7 @@ Material:
     m_Ints:
     - _BinarySteps: 10
     - _FlipY: 0
-    - _MaxSteps: 100
+    - _MaxSteps: 70
     - _Noise: 0
     - _TraceSteps: 300
     m_Floats:
@@ -101,7 +101,7 @@ Material:
     - _AlphaPreserve: 1
     - _AlphaToMask: 0
     - _BinarySearchPrecision: 0.002
-    - _BinaryTolerance: 0.001
+    - _BinaryTolerance: 0.0005
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BlendOp: 0

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 
-public class Wall : MonoBehaviour{
+public class Wall : MonoBehaviour {
     public static readonly int outerColorIndex = Shader.PropertyToID("_OuterOutlineColor");
     public Vector4 redHighlight = new Vector4(1.2f, 0.1f, 0.1f, 1f) * 10f, blueHighlight = new Vector4(0.1f, 0.5f, 1.2f, 1f) * 10f;
     private Vector3 startPos;
@@ -31,14 +31,15 @@ public class Wall : MonoBehaviour{
     }
 
     public void Update(){
-        if (transform.position.y < -10){
+        if (transform.position.y < -10) {
             gameObject.SetActive(false);
         }
     }
 
     public void SetOutlineBlink(PlayerSide hitSide){
         mr.materials[0].SetVector(outerColorIndex, hitSide == PlayerSide.Blue ? blueHighlight : redHighlight);
-        Tools.CallDelayed(() => mr.materials[0].SetVector(outerColorIndex, Vector4.zero), 0.2f);
+        try { Tools.CallDelayed(() => mr.materials[0].SetVector(outerColorIndex, Vector4.zero), 0.2f); }
+        finally { }
     }
 
 

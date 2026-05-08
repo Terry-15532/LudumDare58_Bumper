@@ -35,8 +35,8 @@ public class PlayerController : MonoBehaviour {
 
     // Populated by Game.NFCStartMatch when a match begins via NFC.
     // Empty strings in keyboard / AI mode — UI should fall back to the side label.
-    [System.NonSerialized] public string profileUid   = "";
-    [System.NonSerialized] public string profileName  = "";
+    [System.NonSerialized] public string profileUid = "";
+    [System.NonSerialized] public string profileName = "";
     [System.NonSerialized] public string profileEmoji = "";
 
     public InputActionAsset input;
@@ -52,12 +52,10 @@ public class PlayerController : MonoBehaviour {
     // Used by Game.cs NFC mode for confirm (index 4) / reroll (index 5) per side.
     // Indexes: [0-3] up/down/left/right  [4] bomb  [5] dash  [6] shield  [7] taunt.
     public static KeyCode[] blueKeys = {
-        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D,
-        KeyCode.Space, KeyCode.LeftShift, KeyCode.LeftControl, KeyCode.Z
+        KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.Space, KeyCode.LeftShift, KeyCode.LeftControl, KeyCode.Z
     };
     public static KeyCode[] redKeys = {
-        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow,
-        KeyCode.Return, KeyCode.RightShift, KeyCode.RightControl, KeyCode.Slash
+        KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow, KeyCode.Return, KeyCode.RightShift, KeyCode.RightControl, KeyCode.Slash
     };
     static readonly int _SmokeIntensityBlue = Shader.PropertyToID("_BlueSmokeStrength");
     static readonly int _SmokeIntensityRed = Shader.PropertyToID("_RedSmokeStrength");
@@ -81,6 +79,7 @@ public class PlayerController : MonoBehaviour {
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         transform.rotation = Quaternion.Euler(0, side == PlayerSide.Blue ? 90f : -90f, 0);
+        head.transform.localPosition = Vector3.zero;
         ClearBuffs();
     }
 
@@ -124,10 +123,9 @@ public class PlayerController : MonoBehaviour {
         baseAcc = acc;
         baseMaxSpeed = maxSpeed;
         baseMass = rb.mass;
-        var mats = mr.materials;
-        originalMaterialColors = new Color[mats.Length];
-        for (int i = 0; i < mats.Length; i++)
-            originalMaterialColors[i] = mats[i].GetColor(buffColorId);
+        // originalMaterialColors = new Color[mats.Length];
+        // for (int i = 0; i < mats.Length; i++)
+        //     originalMaterialColors[i] = mats[i].GetColor(buffColorId);
         ResetPosition();
         Shader.SetGlobalFloat(side == PlayerSide.Blue ? _SmokeIntensityBlue : _SmokeIntensityRed, 0f);
 
@@ -138,8 +136,8 @@ public class PlayerController : MonoBehaviour {
             movement = cloned.FindAction("Movement");
             placeBomb = cloned.FindAction("PlaceBomb");
             dash = cloned.FindAction("Dash");
-            shield = cloned.FindAction("Shield");
-            // taunt = cloned.FindAction("Taunt");
+            //shield = cloned.FindAction("Shield");
+            taunt = cloned.FindAction("Taunt");
             trackball = cloned.FindAction("Trackball");
             // foreach (var action in cloned.actionMaps) {
             //     action.ApplyBindingOverride(new InputBinding() {
@@ -149,7 +147,7 @@ public class PlayerController : MonoBehaviour {
             // }
             // InputSystem.AddDevice(pad);
             cloned.devices = new[] {
-                gamePadIndex == 0? Gamepad.all[0] : Joystick.all[0], (InputDevice)Keyboard.current
+                Joystick.all[gamePadIndex], (InputDevice)Keyboard.current
             };
             cloned.Enable();
         }
@@ -157,18 +155,26 @@ public class PlayerController : MonoBehaviour {
     }
 
     static readonly int buffColorId = Shader.PropertyToID("_Color");
-    Color[] originalMaterialColors;
+    static readonly int _fillAmount = Shader.PropertyToID("_FillAmount");
+    // Color[] originalMaterialColors;
+    Vector4 currentBuffOutlineColor = Vector4.zero;
+
+    public void RestoreOutlineColor() {
+        if (!shieldActive && mr != null) {
+            mr.materials[0].SetVector(Wall.outerColorIndex, currentBuffOutlineColor);
+        }
+    }
 
     // Buff timestamps — a buff is active while Time.time < *Until.
     // Each frame UpdateBuffs() applies runtime effects and material color based on these.
-    public float speedBoostUntil = 0f;
-    public float invincibleUntil = 0f;
+    public float speedBoostUntil;
+    public float invincibleUntil;
     public float speedBoostMultiplier = 1.5f;
 
     // Most-recently-applied durations for each buff. Used by PickupHUD to compute progress bar fill.
-    [HideInInspector] public float speedBoostDuration = 0f;
-    [HideInInspector] public float invincibleDuration = 0f;
-    [HideInInspector] public float doubleScoreDuration = 0f;
+    [HideInInspector] public float speedBoostDuration;
+    [HideInInspector] public float invincibleDuration;
+    [HideInInspector] public float doubleScoreDuration;
 
     // Baselines captured in Init so runtime values are always derived from a known-good source,
     // never from a possibly-already-boosted "current" value. Prevents compounding stack bugs.
@@ -186,12 +192,16 @@ public class PlayerController : MonoBehaviour {
     public void ApplyInvincibility(float duration){
         invincibleUntil = Time.time + duration;
         invincibleDuration = duration;
+        Commentator.instance?.TriggerEvent(gameObject.name.Contains("Blue") ? CommentaryEvent.BlueInvincible : CommentaryEvent.RedInvincible, 2f);
     }
 
     public void ApplyDoubleScore(float duration){
         doubleScoreUntil = Time.time + duration;
         doubleScoreDuration = duration;
+        Commentator.instance?.TriggerEvent(gameObject.name.Contains("Blue") ? CommentaryEvent.BlueDoubleScore : CommentaryEvent.RedDoubleScore, 2f);
     }
+
+    public TrailRenderer trail;
 
     void UpdateBuffs(){
         bool speedActive = Time.time < speedBoostUntil;
@@ -209,16 +219,14 @@ public class PlayerController : MonoBehaviour {
 
         if (current == lastBuffVisual) return;
         lastBuffVisual = current;
-        Color c = current switch {
-            BuffVisual.Invincible => new Color(2f, 2f, 2f),
-            BuffVisual.SpeedBoost => new Color(0.2f, 2f, 0.2f),
-            BuffVisual.DoubleScore => new Color(2f, 1.5f, 0.2f),
-            _ => Color.clear
+        Vector4 c = current switch {
+            BuffVisual.Invincible => new Vector4(2f, 2f, 2f, 1f) * 3f,
+            BuffVisual.SpeedBoost => new Vector4(0.2f, 2f, 0.2f, 1f) * 3f,
+            BuffVisual.DoubleScore => new Vector4(2f, 0.5f, 0.2f, 1f) * 3f,
+            _ => Vector4.zero
         };
-        var mats = mr.materials;
-        for (int i = 0; i < mats.Length; i++) {
-            mats[i].SetColor(buffColorId, current == BuffVisual.None ? originalMaterialColors[i] : c);
-        }
+        currentBuffOutlineColor = c;
+        RestoreOutlineColor();
     }
 
     Coroutine smokeCoroutine;
@@ -252,7 +260,7 @@ public class PlayerController : MonoBehaviour {
     public bool bombPlaced = false;
 
     // ── Dash ──────────────────────────────────────────────────────────────
-    public float dashForce = 28f;
+    public float dashForce = 15f;
     public float dashCooldown = 2f;
     float dashCooldownLeft = 0f;
 
@@ -261,14 +269,14 @@ public class PlayerController : MonoBehaviour {
     public float shieldCooldown = 4f;
     public float shieldReflectForce = 18f;
     float shieldCooldownLeft = 0f;
-    public bool shieldActive = false;
-    float shieldActiveLeft = 0f;
+    public bool shieldActive;
+    float shieldActiveLeft;
 
     // ── Taunt ─────────────────────────────────────────────────────────────
     public float tauntCooldown = 3f;
-    float tauntCooldownLeft = 0f;
+    float tauntCooldownLeft;
 
-    public float doubleScoreUntil = 0f;
+    public float doubleScoreUntil;
 
     void LateUpdate(){
         UpdateBuffs();
@@ -278,10 +286,13 @@ public class PlayerController : MonoBehaviour {
     public float aiDecisionInterval = 0.3f;// seconds between decisions
     private float aiDecisionTimer = 0f;
     private Vector3 aiLastDirection = Vector3.zero;
+    private Vector3 aiCurrentDirection = Vector3.zero;
 
     // AI bomb placement variables
     public float aiBombDecisionInterval = 0.5f;// check bomb placement less frequently
     private float aiBombDecisionTimer = 0f;
+
+    public SpriteRenderer dashCooldownIndicator;
 
     void Update(){
         // Cooldown timers (unscaled so they tick during pause-exempt moments, scaled otherwise)
@@ -331,15 +342,15 @@ public class PlayerController : MonoBehaviour {
                 bombPlaced = true;
             }
 
-            if (!bombPlaced && dash.WasPressedThisFrame() && Game.instance.matchRunning) {
+            if (dashCooldownLeft <= 0.01f && dash.WasPressedThisFrame() && Game.instance.matchRunning) {
                 PerformDash();
             }
 
-            if (!bombPlaced && shield.WasPressedThisFrame() && Game.instance.matchRunning) {
-                ActivateShield();
-            }
+            // if (shield.WasPressedThisFrame() && Game.instance.matchRunning) {
+            //     ActivateShield();
+            // }
 
-            if (!bombPlaced && taunt.WasPressedThisFrame() && Game.instance.matchRunning) {
+            if (tauntCooldownLeft <= 0.01f && taunt.WasPressedThisFrame() && Game.instance.matchRunning) {
                 PerformTaunt();
             }
 
@@ -347,6 +358,9 @@ public class PlayerController : MonoBehaviour {
                 direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
             }
         }
+        dashCooldownIndicator.transform.rotation = Quaternion.Euler(new Vector3(90, 0, 0));
+        dashCooldownIndicator.material.SetFloat(_fillAmount, 1f - dashCooldownLeft / dashCooldown);
+        dashCooldownIndicator.color = dashCooldownLeft <= 0.01f ? SideTint() * 5f : new Color(1f, 1f, 1f, 0.3f);
 
     }
 
@@ -368,39 +382,111 @@ public class PlayerController : MonoBehaviour {
 
                 aiDecisionTimer -= Time.fixedDeltaTime;
                 if (aiDecisionTimer <= 0f) {
-                    aiDecisionTimer = aiDecisionInterval;
-                    // AI logic: chase coin, avoid map edge, avoid enemy
+                    aiDecisionTimer = aiDecisionInterval + UnityEngine.Random.Range(-0.05f, 0.1f);
+                    // AI logic: chase targets, avoid map edge, avoid enemy, consider dash & taunt
                     GameObject coinObj = Game.instance.coin;
                     GameObject enemyObj = (side == PlayerSide.Blue) ? Game.instance.playerRed.gameObject : Game.instance.playerBlue.gameObject;
-                    Vector3 coinPos = coinObj.transform.position;
-                    Vector3 enemyPos = enemyObj.transform.position;
                     Vector3 myPos = player.transform.position;
+                    Vector3 enemyPos = enemyObj.transform.position;
 
-                    // Move towards coin
-                    Vector3 toCoin = (coinPos - myPos);
-                    toCoin.y = 0;// ignore vertical for movement
-                    Vector3 moveDir = toCoin.normalized;
-
-                    // Avoid map edge
-                    float safeX = Mathf.Clamp(myPos.x, -9.5f, 9.5f);
-                    float safeY = Mathf.Clamp(myPos.y, -5.5f, 5.5f);
-                    Vector3 safePos = new Vector3(safeX, safeY, myPos.z);
-                    Vector3 awayFromEdge = (safePos - myPos) * 2f;// steer back in if near edge
-
-                    // Avoid enemy if close and between AI and coin
-                    float enemyDist = Vector3.Distance(myPos, enemyPos);
-                    float coinDist = Vector3.Distance(myPos, coinPos);
-                    Vector3 toEnemy = (enemyPos - myPos);
-                    toEnemy.y = 0;
-                    bool enemyBlocking = (Vector3.Dot(toCoin.normalized, toEnemy.normalized) > 0.7f) && (enemyDist < coinDist) && (enemyDist < 4f);
-                    Vector3 avoidEnemy = Vector3.zero;
-                    if (enemyBlocking) {
-                        // sidestep perpendicular to enemy direction
-                        avoidEnemy = Vector3.Cross(toEnemy.normalized, Vector3.up) * 2f;
+                    // 1. Evaluate targets (coin vs pickups)
+                    Vector3 bestTargetPos = coinObj != null ? coinObj.transform.position : Vector3.zero;
+                    float bestScore = -1f;
+                    
+                    if (coinObj != null) {
+                        float coinDist = Vector3.Distance(myPos, coinObj.transform.position);
+                        bestScore = (Time.time < doubleScoreUntil ? 200f : 100f) / Mathf.Max(1f, coinDist);
                     }
 
-                    aiLastDirection = (moveDir + awayFromEdge + avoidEnemy).normalized;
+                    var pickups = FindObjectsByType<PickupBase>(FindObjectsSortMode.None);
+                    if (pickups != null) {
+                        foreach (var p in pickups) {
+                            if (!p.gameObject.activeInHierarchy) continue;
+                            float d = Vector3.Distance(myPos, p.transform.position);
+                            float score = 150f / Mathf.Max(1f, d);
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestTargetPos = p.transform.position;
+                            }
+                        }
+                    }
+
+                    Vector3 toTarget = (bestTargetPos - myPos);
+                    toTarget.y = 0;
+                    Vector3 moveDir = toTarget.normalized;
+
+                    // Avoid map edge (assuming XZ plane) - make it more conservative
+                    // Tighter safe area to make AI avoid edges more aggressively
+                    float safeX = Mathf.Clamp(myPos.x, -6f, 6f);
+                    float safeZ = Mathf.Clamp(myPos.z, -3f, 3f);
+                    Vector3 safePos = new Vector3(safeX, myPos.y, safeZ);
+                    // Increase the away-from-edge influence so AI prefers center
+                    Vector3 awayFromEdge = (safePos - myPos) * 12f;
+
+                    // Avoid enemy if close and between AI and target
+                    float enemyDist = Vector3.Distance(myPos, enemyPos);
+                    Vector3 toEnemy = (enemyPos - myPos);
+                    toEnemy.y = 0;
+                    
+                    bool isInvincible = Time.time < invincibleUntil;
+                    Vector3 avoidEnemy = Vector3.zero;
+
+                    if (!isInvincible) {
+                        bool enemyBlocking = (Vector3.Dot(toTarget.normalized, toEnemy.normalized) > 0.7f) && (enemyDist < toTarget.magnitude) && (enemyDist < 4f);
+                        if (enemyBlocking) {
+                            avoidEnemy = Vector3.Cross(toEnemy.normalized, Vector3.up) * 2f;
+                        }
+                    } else if (enemyDist < 5f) {
+                        // Chase enemy if invincible!
+                        moveDir = toEnemy.normalized * 1.5f;
+                    }
+
+                    Vector3 noise = new Vector3(UnityEngine.Random.Range(-0.25f, 0.25f), 0, UnityEngine.Random.Range(-0.25f, 0.25f));
+                    aiLastDirection = (moveDir + awayFromEdge + avoidEnemy + noise).normalized;
+
+                    // Dash logic
+                    if (dashCooldownLeft <= 0.01f && Game.instance.matchRunning) {
+                        bool enemyCloserToTarget = Vector3.Distance(enemyPos, bestTargetPos) < toTarget.magnitude;
+                        bool tryKill = isInvincible && enemyDist < 4f && Vector3.Dot(toEnemy.normalized, aiLastDirection) > 0.8f;
+                        // Require stronger alignment and more distance before dashing at a target
+                        bool clearPathToTarget = Vector3.Dot(toTarget.normalized, aiLastDirection) > 0.9f && toTarget.magnitude > 5f;
+                        
+                        // Predict a conservative landing position (shorter than theoretical max) and ensure it's well inside bounds
+                        float predictedDistance = 3.5f; // conservative estimated dash distance
+                        Vector3 predictedLanding = myPos + aiLastDirection.normalized * predictedDistance;
+                        bool landingWithinBounds = Mathf.Abs(predictedLanding.x) < 7f && Mathf.Abs(predictedLanding.z) < 4f;
+                        
+                        // Also avoid dashing when currently close to the edge
+                        bool tooCloseToEdgeNow = Mathf.Abs(myPos.x) > 6f || Mathf.Abs(myPos.z) > 3f;
+                        
+                        bool safeToDash = landingWithinBounds && !tooCloseToEdgeNow;
+
+                        if (safeToDash && (tryKill || (clearPathToTarget && enemyCloserToTarget))) {
+                            // Use the stick direction (aiLastDirection) as dash direction
+                            aiCurrentDirection = aiLastDirection; 
+                            direction = aiLastDirection; 
+                            PerformDash();
+                        }
+                    }
+
+                    // Taunt logic (Smash taunt when opponent is dead and limits random taunting)
+                    bool enemyDead = !enemyObj.activeInHierarchy;
+                    if (Game.instance.matchRunning) {
+                        if (enemyDead) {
+                            // Occasional taunts if enemy is dead (not too frequently so it's not tiring)
+                            if (tauntCooldownLeft <= 2.8f && UnityEngine.Random.value < 0.15f) {
+                                PerformTaunt();
+                                tauntCooldownLeft = 1.0f; // Soften the spam frequency
+                            }
+                        } else if (tauntCooldownLeft <= 0.01f && isInvincible && UnityEngine.Random.value < 0.02f) {
+                            // Occasional taunt when feeling deeply powerful
+                            PerformTaunt();
+                        }
+                    }
                 }
+
+                // Smooth AI input to simulate human reaction time and thumbstick movement limits AI turning speed
+                aiCurrentDirection = Vector3.MoveTowards(aiCurrentDirection, aiLastDirection, 12f * Time.fixedDeltaTime);
 
                 // AI bomb placement logic
                 aiBombDecisionTimer -= Time.fixedDeltaTime;
@@ -433,7 +519,7 @@ public class PlayerController : MonoBehaviour {
                     }
                 }
 
-                direction = aiLastDirection;
+                direction = aiCurrentDirection;
                 if (rb.linearVelocity.magnitude > maxSpeed && Vector3.Dot(rb.linearVelocity, direction) > 0) {
                     direction = Vector3.ProjectOnPlane(direction, rb.linearVelocity);
                 }
@@ -448,101 +534,102 @@ public class PlayerController : MonoBehaviour {
     // }
 
     // ── Dash ──────────────────────────────────────────────────────────────
-    Color SideTint() => side == PlayerSide.Blue ? new Color(0.4f, 0.7f, 1f) : new Color(1f, 0.45f, 0.45f);
+    Color SideTint() => side == PlayerSide.Blue ? new Color(0.1f, 0.5f, 1f) : new Color(1f, 0.1f, 0.1f);
 
     // NotoEmoji yellow-face sprites — passed Color.white so the sprite color shows through.
-    const string DashEmoji    = "<sprite=\"NotoEmoji\" name=\"1f60e\">"; // sunglasses
-    const string ShieldEmoji  = "<sprite=\"NotoEmoji\" name=\"1f923\">"; // rofl
-    const string TauntEmoji   = "<sprite=\"NotoEmoji\" name=\"1f61c\">"; // tongue + wink
-    const string KillEmoji    = "<sprite=\"NotoEmoji\" name=\"1f602\">"; // tears of joy
-    const string CoinFallback = "<sprite=\"NotoEmoji\" name=\"1f60a\">"; // blush
+    const string DashEmoji = "<sprite=\"NotoEmoji\" name=\"1f60e\">";// sunglasses
+    const string ShieldEmoji = "<sprite=\"NotoEmoji\" name=\"1f923\">";// rofl
+    const string TauntEmoji = "<sprite=\"NotoEmoji\" name=\"1f61c\">";// tongue + wink
+    const string KillEmoji = "<sprite=\"NotoEmoji\" name=\"1f602\">";// tears of joy
+    const string CoinFallback = "<sprite=\"NotoEmoji\" name=\"1f60a\">";// blush
 
-    public void PerformDash() {
+    public void PerformDash(){
+        SoundSys.PlaySound("Dash").audioSource.volume = 1f;
         EmojiReaction.Spawn(player.transform, DashEmoji);
-        // Dash towards the opponent; fall back to movement direction or forward
-        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
-        Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
-        toOpponent.y = 0;
-        Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
-        rb.linearVelocity = d * dashForce;
-        dashCooldownLeft = dashCooldown;
+        // Commentator.instance?.TriggerEvent(side == PlayerSide.Blue ? CommentaryEvent.BlueDash : CommentaryEvent.RedDash, 1.5f);
+         // // Dash towards the opponent; fall back to movement direction or forward
+         // PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+         // Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
+         // toOpponent.y = 0;
+         // Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+         rb.linearVelocity = direction * dashForce;
+         dashCooldownLeft = dashCooldown;
 
-        SoundSys.PlaySound("Hit").audioSource.volume = 0.5f;
-        CameraShake.Shake(0.35f, 0.18f);
+         SoundSys.PlaySound("Hit").audioSource.volume = 1f;
+         CameraShake.Shake(0.35f, 0.18f);
 
-        // Smoke burst
-        SetSmokeIntensitySmooth(2.5f, 0.05f);
-        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+         // Smoke burst
+         SetSmokeIntensitySmooth(2.5f, 0.05f);
+         Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
 
-        // Outline flash in player color
-        var dashColor = side == PlayerSide.Blue
-            ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
-            : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
-        mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
-        Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+         // Outline flash in player color
+         var dashColor = side == PlayerSide.Blue
+             ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
+             : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
+         mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
+         Tools.CallDelayed(() => RestoreOutlineColor(), 0.2f);
 
-        // Screen blink on own side
-        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
-    }
+         // Screen blink on own side
+         Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+     }
 
     // ── Shield ────────────────────────────────────────────────────────────
-    public void ActivateShield(){
-        shieldActive = true;
-        shieldActiveLeft = shieldDuration;
-        shieldCooldownLeft = shieldCooldown;
-
-        SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
-
-        // Force UpdateBuffs to re-evaluate on next frame
-        lastBuffVisual = BuffVisual.None;
-
-        // Cyan glow
-        var mats = mr.materials;
-        foreach (var m in mats) m.SetColor(buffColorId, new Color(0.2f, 2f, 2f));
-
-        // Cyan outline
-        mr.materials[0].SetVector(Wall.outerColorIndex, new Vector4(0.2f, 1.5f, 2f, 1) * 8f);
-
-        // Smoke burst
-        SetSmokeIntensitySmooth(1.8f, 0.08f);
-        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0.4f, 0.3f), 0.15f);
-
-        // Screen blink
-        Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
-
-        // When shield expires, clean up and let UpdateBuffs restore correct color
-        Tools.CallDelayed(() => {
-            if (!shieldActive) {
-                mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero);
-                SetSmokeIntensitySmooth(0f, 0.3f);
-                lastBuffVisual = BuffVisual.None;
-            }
-        }, shieldDuration);
-    }
+    // public void ActivateShield(){
+    //     shieldActive = true;
+    //     shieldActiveLeft = shieldDuration;
+    //     shieldCooldownLeft = shieldCooldown;
+    //
+    //     SoundSys.PlaySound("BombPlaced").audioSource.volume = 0.6f;
+    //
+    //     // Force UpdateBuffs to re-evaluate on next frame
+    //     lastBuffVisual = BuffVisual.None;
+    //
+    //     // Cyan glow
+    //     var mats = mr.materials;
+    //     foreach (var m in mats) m.SetColor(buffColorId, new Color(0.2f, 2f, 2f));
+    //
+    //     // Cyan outline
+    //     mr.materials[0].SetVector(Wall.outerColorIndex, new Vector4(0.2f, 1.5f, 2f, 1) * 8f);
+    //
+    //     // Smoke burst
+    //     SetSmokeIntensitySmooth(1.8f, 0.08f);
+    //     Tools.CallDelayed(() => SetSmokeIntensitySmooth(0.4f, 0.3f), 0.15f);
+    //
+    //     // Screen blink
+    //     Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+    //
+    //     // When shield expires, clean up and let UpdateBuffs restore correct color
+    //     Tools.CallDelayed(() => {
+    //         if (!shieldActive) {
+    //             RestoreOutlineColor();
+    //             SetSmokeIntensitySmooth(0f, 0.3f);
+    //         }
+    //     }, shieldDuration);
+    // }
 
     // ── Taunt ─────────────────────────────────────────────────────────────
-    public void PerformTaunt() {
-        EmojiReaction.Spawn(player.transform, TauntEmoji);
+    public void PerformTaunt(){
+        EmojiReaction.Spawn(player.transform, EmojiPalette.Random());
         tauntCooldownLeft = tauntCooldown;
-        PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+        // PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
 
-        SoundSys.PlaySound("Taunt _Robotic Voice").audioSource.volume = 0.5f;
+        // SoundSys.PlaySound("Taunt _Robotic Voice").audioSource.volume = 0.5f;
 
         // Smoke puff on opponent only
-        opponent.SetSmokeIntensitySmooth(1.2f, 0.1f);
-        Tools.CallDelayed(() => opponent.SetSmokeIntensitySmooth(0f, 0.4f), 0.3f);
+        // opponent.SetSmokeIntensitySmooth(1.2f, 0.1f);
+        // Tools.CallDelayed(() => opponent.SetSmokeIntensitySmooth(0f, 0.4f), 0.3f);
 
         // Triple-flash opponent's screen side
-        BlinkSide oppBlink = side == PlayerSide.Blue ? BlinkSide.Right : BlinkSide.Left;
-        Game.instance.BlinkScreen(oppBlink);
-        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.15f);
-        Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.30f);
-
-        // Fullscreen blink finale
-        Tools.CallDelayed(() => Game.instance.BlinkScreen(BlinkSide.Fullscreen), 0.45f);
+        // BlinkSide oppBlink = side == PlayerSide.Blue ? BlinkSide.Right : BlinkSide.Left;
+        // Game.instance.BlinkScreen(oppBlink);
+        // Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.15f);
+        // Tools.CallDelayed(() => Game.instance.BlinkScreen(oppBlink), 0.30f);
+        //
+        // // Fullscreen blink finale
+        // Tools.CallDelayed(() => Game.instance.BlinkScreen(BlinkSide.Fullscreen), 0.45f);
 
         // Camera nudge
-        CameraShake.Shake(0.2f, 0.12f);
+        // CameraShake.Shake(0.2f, 0.12f);
     }
 
     public void OnTriggerEnter(Collider other){
@@ -550,12 +637,12 @@ public class PlayerController : MonoBehaviour {
             // Killer = the opposite side.
             PlayerController killer = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
             EmojiReaction.Spawn(killer.player.transform, KillEmoji);
-            Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 5);
+            Game.instance.AddScore(side == PlayerSide.Blue ? PlayerSide.Red : PlayerSide.Blue, 3);
             gameObject.SetActive(false);
             ResetPosition();
             SoundSys.PlaySound("Drop").audioSource.volume = 0.5f;
             CameraShake.Shake(0.8f, 0.35f);
-            Tools.CallDelayed(() => { gameObject.SetActive(true); }, 1f);
+            Tools.CallDelayed(() => { gameObject.SetActive(true); }, 2f);
         }
         else if (other.gameObject.name == "Coin") {
             // Personal-touch reaction: show the player's own emoji.
@@ -577,7 +664,7 @@ public class PlayerController : MonoBehaviour {
                 side == PlayerSide.Blue
                     ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 6f
                     : 7f * new Vector4(1.2f, 0.1f, 0.1f, 1));
-            Tools.CallDelayed(() => mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.1f);
+            Tools.CallDelayed(() => RestoreOutlineColor(), 0.1f);
             CameraShake.Shake(0.25f, 0.18f);
         }
 
@@ -603,7 +690,7 @@ public class PlayerController : MonoBehaviour {
                 // Outline flash on the reflected player
                 var reflectColor = new Vector4(0.2f, 1.5f, 2f, 1) * 10f;
                 other.mr.materials[0].SetVector(Wall.outerColorIndex, reflectColor);
-                Tools.CallDelayed(() => other.mr.materials[0].SetVector(Wall.outerColorIndex, Vector4.zero), 0.2f);
+                Tools.CallDelayed(() => other.RestoreOutlineColor(), 0.2f);
 
                 // Fullscreen blink
                 Game.instance.BlinkScreen(BlinkSide.Fullscreen);

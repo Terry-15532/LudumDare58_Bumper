@@ -169,16 +169,36 @@ Shader "Custom/BasicAnime"
             {
                 "LightMode" = "DepthOnly"
             }
+
             ZWrite On
             ColorMask 0
-            Cull Front
-            HLSLPROGRAM
-            #pragma shader_feature _DEPTH_TEXTURE
-            #pragma vertex DepthOnlyVertex
-            #pragma fragment DepthOnlyFragment
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
-            #pragma target 2.0
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+            };
+
+            struct Varyings
+            {
+                float4 positionHCS : SV_POSITION;
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+                output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
+                return output;
+            }
+
+            float4 frag(Varyings input) : SV_TARGET
+            {
+                return 1; // Encode normal to [0,1]
+            }
             ENDHLSL
         }
 
