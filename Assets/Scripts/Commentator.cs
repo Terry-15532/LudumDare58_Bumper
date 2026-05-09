@@ -1,21 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-// using LLMUnity;
 using Piper;
 using Random = UnityEngine.Random;
 
 public enum CommentaryEvent {
     GameStart,
-    // BlueScore,
-    // RedScore,
     BlueKill,
     RedKill,
     BlueDash,
     RedDash,
-    // BlueShield,
-    // RedShield,
-    // CoinMoved,
     BlueDoubleScore,
     RedDoubleScore,
     BlueInvincible,
@@ -28,12 +22,9 @@ public enum CommentaryEvent {
 public class Commentator : MonoBehaviour {
     public static Commentator instance;
 
-    // public LLMAgent llmAgent;
-
     [Header("Settings")]
-    [Tooltip("控制两次播报之间的最小时间间隔（秒），用于控制播报频率")]
     public float commentaryCooldown = 8f;
-    public float eventBufferTime = 0.6f;// How long to wait to accumulate events before speaking
+    public float eventBufferTime = 0.6f;
 
     private float lastCommentaryTime;
     private float currentBufferTime;
@@ -44,9 +35,6 @@ public class Commentator : MonoBehaviour {
     private bool isGenerating;
     private int generationId;
 
-    // Removed static voice lines and fallback generation - prompts are now LLM-driven only.
-
-    // Score history / simple heuristics for comeback / rapid closing
     private int maxLeadBlue;
     private int maxLeadRed;
 
@@ -59,7 +47,6 @@ public class Commentator : MonoBehaviour {
     private Coroutine subtitleCoroutine;
     private Coroutine playVoiceLineCoroutine;
 
-    // Hardcoded fallback commentary library for intelligent fallback
     private Dictionary<CommentaryEvent, List<string>> fallbackCommentary = new Dictionary<CommentaryEvent, List<string>> {
         {
             CommentaryEvent.RedKill, new List<string> {
@@ -134,6 +121,13 @@ public class Commentator : MonoBehaviour {
         }
     };
 
+    private enum PlayerIntroTier {
+        VeteranHigh,
+        VeteranLow,
+        RookieHigh,
+        RookieLow
+    }
+
     private void Awake(){
         if (instance == null) {
             instance = this;
@@ -171,13 +165,13 @@ public class Commentator : MonoBehaviour {
         subtitleCanvasGroup.alpha = 0f;
 
         UnityEngine.UI.Image bgImage = bgGO.AddComponent<UnityEngine.UI.Image>();
-        bgImage.color = new Color(0, 0, 0, 0.7f);// Semi-transparent black background
+        bgImage.color = new Color(0, 0, 0, 0.7f);
 
         RectTransform bgRt = bgGO.GetComponent<RectTransform>();
         bgRt.anchorMin = new Vector2(0.5f, 0.08f);
         bgRt.anchorMax = new Vector2(0.5f, 0.08f);
         bgRt.pivot = new Vector2(0.5f, 0f);
-        bgRt.sizeDelta = new Vector2(1200, 0);// Fixed width, height driven by content
+        bgRt.sizeDelta = new Vector2(1200, 0);
 
         UnityEngine.UI.VerticalLayoutGroup layout = bgGO.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
         layout.padding = new RectOffset(30, 30, 15, 15);
@@ -191,18 +185,17 @@ public class Commentator : MonoBehaviour {
         textGO.transform.SetParent(bgGO.transform, false);
 
         subtitleText = textGO.AddComponent<TMPro.TextMeshProUGUI>();
-        subtitleText.alignment = TMPro.TextAlignmentOptions.Center;// Centered text to match Overwatch
-        subtitleText.fontSize = 30;
+        subtitleText.alignment = TMPro.TextAlignmentOptions.Center;
+        subtitleText.fontSize = 35;
         subtitleText.color = Color.white;
         subtitleText.fontStyle = TMPro.FontStyles.Bold;
         subtitleText.textWrappingMode = TMPro.TextWrappingModes.Normal;
 
-        // Try to get a nicer font from Game if available
         StartCoroutine(AssignFontRoutine());
     }
 
     private IEnumerator AssignFontRoutine(){
-        yield return null;// Wait 1 frame for Game instance
+        yield return null;
         if (Game.instance != null && Game.instance.countdownText != null) {
             subtitleText.font = Game.instance.countdownText.font;
             subtitleText.fontSharedMaterial = Game.instance.countdownText.fontSharedMaterial;
@@ -210,15 +203,13 @@ public class Commentator : MonoBehaviour {
     }
 
     public void TriggerEvent(CommentaryEvent evt, float priority = 1f){
-        // Ensure Victory is always highest priority
         if (evt == CommentaryEvent.Victory) {
             priority = 5f;
-            hasAnnouncedGameStart = false;// 重置状态以便下一局可以正常播报
+            hasAnnouncedGameStart = false;
             hasAnnouncedHalfTime = false;
             hasAnnouncedFifteenSeconds = false;
         }
 
-        // Do not generate or queue new events in the last 10 seconds, except Victory
         if (IsInFinalSilentWindow() && evt != CommentaryEvent.Victory) {
             return;
         }
@@ -241,38 +232,25 @@ public class Commentator : MonoBehaviour {
             hasAnnouncedHalfTime = false;
             hasAnnouncedFifteenSeconds = false;
 
-            // 新局开始，重置所有状态
-            voiceLineQueue.Clear();
             eventBuffer.Clear();
-            isSpeaking = false;
+            currentBufferTime = 0f;
             isGenerating = false;
-            generationId++;// 取消当前生成
-            if (playVoiceLineCoroutine != null) StopCoroutine(playVoiceLineCoroutine);
-            if (audioSource) audioSource.Stop();
-            if (subtitleCoroutine != null) StopCoroutine(subtitleCoroutine);
-            if (subtitleCanvasGroup) subtitleCanvasGroup.alpha = 0f;
-
-            // if (llmAgent != null) {
-            //     _ = llmAgent.ClearHistory();
-            // }
+            generationId++;
         }
 
-        // Add to buffer
         if (!eventBuffer.Contains(evt)) {
             eventBuffer.Add(evt);
             currentBufferTime = eventBufferTime;
         }
 
-        // If it's a super high priority event, we might clear the queue
-        if (priority >= 3f) {
+        if (priority >= 3f && evt != CommentaryEvent.GameStart) {
             voiceLineQueue.Clear();
-            generationId++;// Cancel any currently pending generation
+            generationId++;
             isGenerating = false;
 
-            // Immediate interrupt for absolute highest priority (e.g., Victory = 5f)
             if (priority >= 5f) {
                 eventBuffer.Clear();
-                eventBuffer.Add(evt);// Isolate the high priority event
+                eventBuffer.Add(evt);
                 currentBufferTime = 0f;
                 isSpeaking = false;
                 if (playVoiceLineCoroutine != null) StopCoroutine(playVoiceLineCoroutine);
@@ -283,6 +261,16 @@ public class Commentator : MonoBehaviour {
         }
     }
 
+    public void QueueLine(string text){
+        if (string.IsNullOrWhiteSpace(text)) return;
+        voiceLineQueue.Enqueue(text);
+    }
+
+    public void AnnouncePlayerIntro(string playerName, int wins, int losses, int matchesPlayed, bool isNewProfile){
+        string line = BuildPlayerIntroLine(playerName, wins, losses, matchesPlayed, isNewProfile);
+        QueueLine(line);
+    }
+
     private bool IsInFinalSilentWindow(){
         return Game.instance != null
             && Game.instance.matchRunning
@@ -290,7 +278,6 @@ public class Commentator : MonoBehaviour {
     }
 
     private void Update(){
-        // 最后10秒：停止处理新的普通播报，避免和结算播报冲突
         if (IsInFinalSilentWindow()) {
             if (eventBuffer.Count > 0) {
                 bool hasVictory = eventBuffer.Contains(CommentaryEvent.Victory);
@@ -347,7 +334,6 @@ public class Commentator : MonoBehaviour {
             eventBuffer.Contains(CommentaryEvent.HalfTime) ||
             eventBuffer.Contains(CommentaryEvent.FifteenSeconds);
 
-        // Prevent overlapping too many minor events
         if (Time.time - lastCommentaryTime < commentaryCooldown && !isHighPriority) {
             eventBuffer.Clear();
             return;
@@ -359,160 +345,231 @@ public class Commentator : MonoBehaviour {
         GenerateLLMLine(eventsCopy);
     }
 
-    /// <summary>
-    /// 生成智能的 hardcoded fallback 播报文本
-    /// </summary>
+    private string GetArrayPick(string[] arr){
+        if (arr == null || arr.Length == 0) return "";
+        return arr[Random.Range(0, arr.Length)];
+    }
+
+    private PlayerIntroTier GetPlayerTier(int wins, int losses, int matchesPlayed){
+        int total = Mathf.Max(0, wins + losses);
+
+        if (matchesPlayed >= 10) {
+            if (total == 0) return PlayerIntroTier.VeteranLow;
+            float rate = (float)wins / total;
+            return rate >= 0.6f ? PlayerIntroTier.VeteranHigh : PlayerIntroTier.VeteranLow;
+        }
+
+        if (total == 0) return PlayerIntroTier.RookieLow;
+
+        float rookieRate = (float)wins / total;
+        return rookieRate >= 0.6f ? PlayerIntroTier.RookieHigh : PlayerIntroTier.RookieLow;
+    }
+
+    private string BuildPlayerIntroLine(string playerName, int wins, int losses, int matchesPlayed, bool isNewProfile){
+        if (string.IsNullOrWhiteSpace(playerName)) playerName = "Unknown Challenger";
+
+        if (playerName == "Anonymous Player") {
+            return GetArrayPick(new[] {
+                "An anonymous contender steps into the spotlight! No name, just intent!",
+                "No history, no identity: this anonymous player lets their actions speak!",
+                "An anonymous challenger emerges! No record, no expectations!",
+                "Off the radar and into the arena! An anonymous competitor arrives!",
+                "Look who we've got! This anonymous player is ready to prove something!",
+                "An anonymous entrant joins the match! Everything to play for!",
+                "No past to analyze, only performance matters now! An anonymous player is here!",
+                "From the shadows to the center stage! An anonymous challenger steps in!",
+                "Unrecognized, but not to be underestimated! Here comes an anonymous player!",
+                "An anonymous player enters! No stats, no story: just a chance to make an impact!"
+            });
+        }
+
+        int total = Mathf.Max(0, wins + losses);
+        float rate = total > 0 ? (wins * 100f / total) : -1f;
+        int rateInt = total > 0 ? Mathf.RoundToInt(rate) : -1;
+        PlayerIntroTier tier = GetPlayerTier(wins, losses, matchesPlayed);
+
+        string opener = tier switch {
+            PlayerIntroTier.VeteranHigh => GetArrayPick(new[] {
+                $"Here comes a seasoned presence! {playerName} steps in!",
+                $"A familiar force enters the arena! It's {playerName}!"
+            }),
+            PlayerIntroTier.VeteranLow => GetArrayPick(new[] {
+                $"Not a perfect record, but plenty of fight! {playerName} is here!",
+                $"Tested and resilient! Here comes {playerName}!"
+            }),
+            PlayerIntroTier.RookieHigh => GetArrayPick(new[] {
+                $"Momentum is building! {playerName} arrives!",
+                $"A rising contender steps forward! It's {playerName}!"
+            }),
+            _ => GetArrayPick(new[] {
+                $"A new challenger approaches! {playerName} enters!",
+                $"Making a first impression! Here's {playerName}!"
+            })
+        };
+
+        string statsLine;
+        if (total > 0) {
+            statsLine = $"Record: {wins}-{losses}, win rate: {rateInt}%!";
+        }
+        else if (isNewProfile) {
+            statsLine = "No record yet: this is a fresh start!";
+        }
+        else {
+            statsLine = "No official record available!";
+        }
+
+        string followUp = GetArrayPick(new[] {
+            "This could shift quickly!",
+            "Tension is building!",
+            "All eyes on this matchup!",
+            "The pace is picking up!",
+            "This one could be decisive!",
+            "Watch this closely!",
+            "Strong entrance!",
+            "Ready to compete!",
+            "Sets the tone early!",
+            "A confident start!"
+        });
+
+        return $"{opener} {statsLine} {followUp}";
+    }
+
+    private string GetWinnerName(PlayerController p, string fallbackSide){
+        if (p == null) return fallbackSide;
+        bool anonymous = string.IsNullOrEmpty(p.profileUid) || string.IsNullOrWhiteSpace(p.profileName);
+        bool ai = p.device == PlayerControlDevice.AI;
+        if (anonymous || ai) return fallbackSide;
+        return p.profileName;
+    }
+
+    private string BuildVictoryLine(int blueScore, int redScore){
+        if (Game.instance == null || Game.instance.playerBlue == null || Game.instance.playerRed == null) {
+            return $"And that is game! Final score, {blueScore} to {redScore}!";
+        }
+
+        if (blueScore > redScore) {
+            string winner = GetWinnerName(Game.instance.playerBlue, "Blue");
+            return $"{winner} takes the victory! Final score, {blueScore} - {redScore}! What a finish!";
+        }
+
+        if (redScore > blueScore) {
+            string winner = GetWinnerName(Game.instance.playerRed, "Red");
+            return $"{winner} takes the victory! Final score, {redScore} - {blueScore}! What a finish!";
+        }
+
+        return $"It ends in a draw! Final score, {blueScore} - {redScore}! Neither side gives an inch!";
+    }
+
     private string GenerateFallbackCommentary(List<CommentaryEvent> events, int blueScore, int redScore, float timeLeft, float maxTimeLeft){
         if (events.Count == 0) return "";
 
-        // 选择要播报的事件（按优先级排序）
         CommentaryEvent mainEvent = events[0];
 
-        // 获取该事件的 fallback 播报
+        if (mainEvent == CommentaryEvent.Victory) {
+            return BuildVictoryLine(blueScore, redScore);
+        }
+
         if (fallbackCommentary.ContainsKey(mainEvent) && fallbackCommentary[mainEvent].Count > 0) {
             string fallback = fallbackCommentary[mainEvent][Random.Range(0, fallbackCommentary[mainEvent].Count)];
 
-            // Determine score relation to possibly add a contrast/transition phrase
             string contrast = "";
             bool blueLeading = blueScore > redScore;
             bool redLeading = redScore > blueScore;
 
-            // Helper local: append contrast clause depending on event/team and current scores
             System.Action<string> AppendContrast = (clause) => {
                 if (!string.IsNullOrEmpty(clause)) {
-                    // Ensure proper spacing/punctuation
                     if (!fallback.EndsWith("!") && !fallback.EndsWith(".") && !fallback.EndsWith("?")) fallback += ".";
                     fallback += " " + clause;
                 }
             };
 
-            // Team-specific events where a contrast makes sense
             switch (mainEvent) {
                 case CommentaryEvent.BlueDoubleScore:
                 case CommentaryEvent.BlueInvincible:
                 case CommentaryEvent.BlueKill:
                 case CommentaryEvent.BlueDash:
                     if (redLeading) {
-                        // Blue did something but Red still leads
                         contrast = new string[] {
-                            "But Red is Leading" + $" {redScore} - {blueScore}.",
-                            "Yet Red maintains the lead at " + $"{redScore} - {blueScore}.",
-                            "Still, Red is ahead with a score of " + $"{redScore} - {blueScore}.",
+                            "But Red is leading " + $"{redScore} - {blueScore}!!!",
+                            "Yet Red still holds the lead at " + $"{redScore} - {blueScore}!!!",
+                            "Still, Red is ahead with a score of " + $"{redScore} - {blueScore}!!!"
                         }[Random.Range(0, 3)];
                     }
                     else if (blueLeading) {
                         contrast = new string[] {
-                            "That extends Blue's advantage to " + $"{blueScore} - {redScore}.",
-                            "And now blue is further leading at " + $"{blueScore} - {redScore}.",
-                            "Blue is pulling away with a score of " + $"{blueScore} - {redScore}.",
-                            "Blue's lead grows to " + $"{blueScore} - {redScore}."
+                            "That extends Blue's advantage to " + $"{blueScore} - {redScore}!!!",
+                            "Blue is pulling away at " + $"{blueScore} - {redScore}!!!",
+                            "Blue's lead grows to " + $"{blueScore} - {redScore}!!!",
+                            "And Blue is getting further ahead at " + $"{blueScore} - {redScore}!!!"
                         }[Random.Range(0, 4)];
                     }
                     break;
+
                 case CommentaryEvent.RedDoubleScore:
                 case CommentaryEvent.RedInvincible:
                 case CommentaryEvent.RedKill:
                 case CommentaryEvent.RedDash:
                     if (blueLeading) {
-                        // Blue did something but Red still leads
                         contrast = new string[] {
-                            "But Blue is Leading" + $" {blueScore} - {redScore}.",
-                            "Yet Blue maintains the lead at " + $"{blueScore} - {redScore}.",
-                            "Still, Blue is ahead with a score of " + $"{blueScore} - {redScore}.",
+                            "But Blue is leading " + $"{blueScore} - {redScore}!!!",
+                            "Yet Blue still holds the lead at " + $"{blueScore} - {redScore}!!!",
+                            "Still, Blue is ahead with a score of " + $"{blueScore} - {redScore}!!!"
                         }[Random.Range(0, 3)];
                     }
                     else if (redLeading) {
                         contrast = new string[] {
-                            "That extends Red's advantage to " + $"{redScore} - {blueScore}.",
-                            "And now Red is further leading at " + $"{redScore} - {blueScore}.",
-                            "Red is pulling away with a score of " + $"{redScore} - {blueScore}.",
-                            "Red's lead grows to " + $"{redScore} - {blueScore}."
+                            "That extends Red's advantage to " + $"{redScore} - {blueScore}!!!",
+                            "Red is pulling away at " + $"{redScore} - {blueScore}!!!",
+                            "Red's lead grows to " + $"{redScore} - {blueScore}!!!",
+                            "And Red is getting further ahead at " + $"{redScore} - {blueScore}!!!"
                         }[Random.Range(0, 4)];
                     }
                     break;
+
                 case CommentaryEvent.HalfTime:
                     if (blueLeading) {
-                        contrast = "Now Blue leads at " + $"{blueScore} - {redScore}.";
+                        contrast = "Now Blue leads at " + $"{blueScore} - {redScore}!!!";
                     }
                     else if (redLeading) {
-                        contrast = "Now Red leads at " + $"{redScore} - {blueScore}.";
+                        contrast = "Now Red leads at " + $"{redScore} - {blueScore}!!!";
                     }
                     else {
-                        contrast = "And the score is tied at " + $"{blueScore}! What a close match!";
+                        contrast = "And the score is tied at " + $"{blueScore} - {redScore}!!!";
                     }
                     break;
+
                 case CommentaryEvent.FifteenSeconds:
                     if (blueLeading) {
-                        if (blueScore - redScore >= 8) {
-                            contrast = "And blue is keeping a huge lead at " + $"{blueScore} - {redScore}.";
-                        }
-                        contrast = "Now Blue is still leading at " + $"{blueScore} - {redScore}.";
+                        contrast = "Now Blue is still leading at " + $"{blueScore} - {redScore}!!!";
                     }
                     else if (redLeading) {
-                        if (redScore - blueScore >= 8) {
-                            contrast = "And red is keeping a huge lead at " + $"{redScore} - {blueScore}.";
-                        }
-                        else {
-                            contrast = "Now Red is still up " + $"{redScore} - {blueScore}.";
-                        }
+                        contrast = "Now Red is still leading at " + $"{redScore} - {blueScore}!!!";
                     }
                     else {
-                        contrast = "With only 15 seconds remaining it's still tied at " + $"{blueScore}.";
+                        contrast = "With only 15 seconds remaining, it is still tied!!!";
                     }
                     break;
-                case CommentaryEvent.Victory:
-                    if (blueScore > redScore) contrast = "Blue wins the match " + $"{blueScore} - {redScore}!";
-                    else if (redScore > blueScore) contrast = "Red takes the victory " + $"{redScore} - {blueScore}!";
-                    else contrast = "It's a draw at " + $"{blueScore}!";
-                    break;
-                case CommentaryEvent.GameStart:
-                    // No contrast needed for game start
-                    contrast = "";
-                    break;
-                default:
-                    contrast = "";
-                    break;
             }
 
-            // Special handling for Victory/HalfTime branches that previously appended score info inside fallback
-            if (mainEvent == CommentaryEvent.Victory) {
-                // Replace fallback entirely with a more emphatic closing if contrast already contains the score statement
-                if (!string.IsNullOrEmpty(contrast)) {
-                    // Use existing fallback as opener then add the contrast (which already includes final score)
-                    if (!fallback.EndsWith("!") && !fallback.EndsWith(".") && !fallback.EndsWith("?")) fallback += ".";
-                    fallback += " " + contrast;
-                    return fallback;
-                }
-            }
-
-            if (mainEvent == CommentaryEvent.HalfTime) {
-                // HalfTime fallback handled: attach the halftime score phrase
-                if (!string.IsNullOrEmpty(contrast)) {
-                    AppendContrast(contrast);
-                    return fallback;
-                }
-            }
-
-            // For other events, if we have a contrast clause either append it or, if earlier code already appended some score text, ensure we don't duplicate
             if (!string.IsNullOrEmpty(contrast) && mainEvent != CommentaryEvent.Victory && mainEvent != CommentaryEvent.HalfTime) {
-                // If fallback already contained a score mention like "The score is tied" skip adding redundant phrase
                 if (fallback.Contains("score is tied") || fallback.Contains("ahead") || fallback.Contains("leading") || fallback.Contains("wins") || fallback.Contains("takes the victory") || fallback.Contains("draw")) {
-                    // In many cases the existing fallback already mentions the score; only add a short contrast if it doesn't restate the same fact
-                    // We'll still add a short connective where helpful
                     if (redLeading && (mainEvent == CommentaryEvent.BlueDoubleScore || mainEvent == CommentaryEvent.BlueInvincible || mainEvent == CommentaryEvent.BlueKill || mainEvent == CommentaryEvent.BlueDash)) {
-                        AppendContrast("Still, Blue needs more to close the gap.");
+                        AppendContrast("Still, Blue needs more to close the gap!!!");
                     }
                     else if (blueLeading && (mainEvent == CommentaryEvent.RedDoubleScore || mainEvent == CommentaryEvent.RedInvincible || mainEvent == CommentaryEvent.RedKill || mainEvent == CommentaryEvent.RedDash)) {
-                        AppendContrast("Still, Red must push to catch up.");
+                        AppendContrast("Still, Red has to push harder to catch up!!!");
                     }
                 }
                 else {
-                    // Append the contrast as-is
                     AppendContrast(contrast);
                 }
             }
 
-            // If we reached here, some events (like Victory/HalfTime) were already returned above when appropriate
+            if (mainEvent == CommentaryEvent.HalfTime && !string.IsNullOrEmpty(contrast)) {
+                AppendContrast(contrast);
+                return fallback;
+            }
+
             return fallback;
         }
 
@@ -526,7 +583,6 @@ public class Commentator : MonoBehaviour {
             return;
         }
 
-        // Always include current scores
         int blueScore = 0, redScore = 0;
         float timeLeft = 0f;
         float maxTimeLeft = 90f;
@@ -537,70 +593,17 @@ public class Commentator : MonoBehaviour {
             maxTimeLeft = Game.instance.maxTime;
         }
 
-        // 生成 fallback 文本（用作 LLM prompt 或直接使用）
-        string fallbackText =  GenerateFallbackCommentary(events, blueScore, redScore, timeLeft, maxTimeLeft);
+        string fallbackText = GenerateFallbackCommentary(events, blueScore, redScore, timeLeft, maxTimeLeft);
 
-        // 如果 LLM 不可用，直接使用 fallback
         if (!string.IsNullOrEmpty(fallbackText)) {
             voiceLineQueue.Enqueue(fallbackText);
         }
         lastCommentaryTime = Time.time;
-        // return;
-        // if (true) {
-        // }
-        //
-        // isGenerating = true;
-        //
-        // if (events.Contains(CommentaryEvent.Victory)) {
-        //     string victoryPrompt = $"{fallbackText} Final Score: Blue {blueScore} - Red {redScore}. Make a memorable closing statement for the match.";
-        //     SendPrompt(victoryPrompt);
-        //     return;
-        // }
-        //
-        // if (events.Contains(CommentaryEvent.GameStart)) {
-        //     SendPrompt(fallbackText);
-        //     return;
-        // }
-        //
-        // // Update simple lead history
-        // // int diff = blueScore - redScore;
-        // // if (diff > maxLeadBlue) maxLeadBlue = diff;
-        // // if (-diff > maxLeadRed) maxLeadRed = -diff;
-        //
-        // // Check if Tie or Leading
-        // string matchStatus = blueScore == redScore ? "Tie" : (blueScore > redScore ? "Blue leading" : "Red leading");
-        //
-        // // Provide context about the length of the match
-        // string timeContext = "";
-        // if (timeLeft > maxTimeLeft * 0.7f) timeContext = "Early game";
-        // else if (timeLeft > maxTimeLeft * 0.4f) timeContext = "Mid game";
-        // else if (timeLeft > 15f) timeContext = "Late game";
-        // else timeContext = "final countdown";
-        //
-        // // Build prompt with fallback as base, asking LLM to improve/optimize it
-        // string llmPrompt = $"{fallbackText}. Context: {timeContext}.";
-        //
-        // Debug.Log($"Fallback: {fallbackText}");
-        // Debug.Log($"LLM Prompt: {llmPrompt}");
-        // SendPrompt(llmPrompt);
     }
 
     private void SendPrompt(string prompt){
         int myGenId = ++generationId;
         string result = "";
-        // _ = llmAgent.Chat(prompt, (response) => {
-        //     if (myGenId != generationId) return;// Discard if interrupted
-        //     if (!string.IsNullOrEmpty(response)) {
-        //         result = response.Trim();
-        //     }
-        // }, () => {
-        //     if (myGenId != generationId) return;// Discard if interrupted
-        //     isGenerating = false;
-        //     if (!string.IsNullOrEmpty(result)) {
-        //         voiceLineQueue.Enqueue(result);
-        //     }
-        // });
-
         lastCommentaryTime = Time.time;
     }
 
@@ -611,15 +614,12 @@ public class Commentator : MonoBehaviour {
     private IEnumerator PlayVoiceLine(string text){
         isSpeaking = true;
 
-        // Debug.Log($"[COMMENTATOR]: {text}");
-
         string ttsText = System.Text.RegularExpressions.Regex.Replace(text, @"(\d+)\s*-\s*(\d+)", "$1 to $2");
-        var ttsTask = piper.TextToSpeechAsync("[COMMENTATOR]: " + ttsText);
+        var ttsTask = piper.TextToSpeechAsync(ttsText);
 
         if (subtitleCoroutine != null) StopCoroutine(subtitleCoroutine);
         subtitleCoroutine = StartCoroutine(ShowSubtitle(text));
 
-        // 不阻塞主线程，逐帧等待
         while (!ttsTask.IsCompleted)
             yield return null;
 
@@ -639,9 +639,6 @@ public class Commentator : MonoBehaviour {
         else {
             yield return new WaitForSeconds(text.Length * 0.1f + 1f);
         }
-
-        // if (llmAgent != null)
-        //     _ = llmAgent.ClearHistory();
 
         isSpeaking = false;
 

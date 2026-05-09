@@ -846,7 +846,7 @@ MonoBehaviour:
   doubleScoreDuration: 0
   trail: {fileID: 2067322181}
   bombPlaced: 0
-  dashForce: 150
+  dashForce: 500
   dashCooldown: 2
   shieldDuration: 1.5
   shieldCooldown: 4
@@ -12349,7 +12349,7 @@ MonoBehaviour:
   doubleScoreDuration: 0
   trail: {fileID: 1574052020}
   bombPlaced: 0
-  dashForce: 150
+  dashForce: 500
   dashCooldown: 2
   shieldDuration: 1.5
   shieldCooldown: 4

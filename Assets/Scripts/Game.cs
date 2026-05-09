@@ -42,7 +42,6 @@ public class Game : MonoBehaviour {
     public CinemachineCamera mainVirtualCamera;
     public bool matchStarted = false, matchRunning = false;
 
-    // Wire a 3D-capable font asset here for floating emoji reactions; falls back to TMP_Settings.defaultFontAsset.
     public TMP_FontAsset reactionFont;
 
     public void Awake(){
@@ -84,8 +83,6 @@ public class Game : MonoBehaviour {
         playerBlue.ResetPosition();
         playerRed.ResetPosition();
 
-        // Profile fields get re-populated by NFCStartMatch; clear so non-NFC
-        // starts don't carry over a stale name from the previous match.
         playerBlue.profileUid = playerBlue.profileName = playerBlue.profileEmoji = "";
         playerRed.profileUid = playerRed.profileName = playerRed.profileEmoji = "";
 
@@ -116,15 +113,12 @@ public class Game : MonoBehaviour {
         Time.timeScale = 1f;
     }
 
-    // ── NFC UI (code-created) ─────────────────────────────────────────────
     GameObject _nfcRoot;
     TextMeshProUGUI _nfcTitle, _nfcBlueLabel, _nfcRedLabel;
 
     void BuildNFCUI(){
-        // Parent to the same canvas as the other UI panels
         Transform canvas = beforeMatchUI.transform.parent;
 
-        // Root panel — full-screen overlay, same as beforeMatchUI
         _nfcRoot = new GameObject("NFC_UI");
         _nfcRoot.transform.SetParent(canvas, false);
         var rootRect = _nfcRoot.AddComponent<RectTransform>();
@@ -132,15 +126,12 @@ public class Game : MonoBehaviour {
         rootRect.anchorMax = Vector2.one;
         rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
 
-        // Semi-transparent background
         var bg = _nfcRoot.AddComponent<Image>();
         bg.color = new Color(0, 0, 0, 0.6f);
 
-        // Copy font settings from countdownText
         TMP_FontAsset font = countdownText.font;
         Material fontMat = countdownText.fontSharedMaterial;
 
-        // Title
         _nfcTitle = CreateLabel(
             _nfcRoot.transform,
             "NFC_Title",
@@ -153,7 +144,6 @@ public class Game : MonoBehaviour {
         );
         _nfcTitle.text = "SWIPE TO JOIN";
 
-        // Blue ready label
         _nfcBlueLabel = CreateLabel(
             _nfcRoot.transform,
             "NFC_Blue",
@@ -167,7 +157,6 @@ public class Game : MonoBehaviour {
         _nfcBlueLabel.text = BuildSlotText(blueSlot);
         _nfcBlueLabel.fontStyle |= FontStyles.Bold | FontStyles.SmallCaps;
 
-        // Red ready label
         _nfcRedLabel = CreateLabel(
             _nfcRoot.transform,
             "NFC_Red",
@@ -221,7 +210,6 @@ public class Game : MonoBehaviour {
         Reset();
     }
 
-    // ── Match scoreboard name labels (code-created, sit above each score) ───
     TextMeshProUGUI _blueNameLabel, _redNameLabel;
 
     void BuildMatchNameLabels(){
@@ -394,7 +382,6 @@ public class Game : MonoBehaviour {
             redWinUI.SetActive(false);
         }
 
-        // Stats tracking — only counts matches that started via NFC (non-empty uid).
         MatchOutcome blueOutcome = blueWon ? MatchOutcome.Win : redWon ? MatchOutcome.Loss : MatchOutcome.Draw;
         MatchOutcome redOutcome = redWon ? MatchOutcome.Win : blueWon ? MatchOutcome.Loss : MatchOutcome.Draw;
         if (!string.IsNullOrEmpty(playerBlue.profileUid))
@@ -435,7 +422,6 @@ public class Game : MonoBehaviour {
             playerRed.GetComponentsInChildren<MeshRenderer>().ToList().ForEach(mr => mr.enabled = true);
             playerRed.GetComponentsInChildren<SpriteRenderer>().ToList().ForEach(sr => sr.enabled = true);
             playerRed.GetComponentInChildren<TrailRenderer>().enabled = true;
-
             playerBlue.gameObject.SetActive(false);
             playerRed.gameObject.SetActive(false);
             matchEndUI.SetActive(false);
@@ -453,14 +439,16 @@ public class Game : MonoBehaviour {
     [FormerlySerializedAs("selectedMode")]
     public bool selectedSingleMode = false;
 
-    // ── NFC selection flow ────────────────────────────────────────────────
     public bool nfcMode = false;
     public bool nfcModeArmed = false;
 
     public enum NfcSlotState { Empty, PendingNewPlayer, PendingReady, Ready }
 
     public class NfcSlot {
-        public NfcSlotState state = NfcSlotState.Empty;
+        public NfcSlotState state {
+            get;
+            set;
+        }
         public string uid;
         public string name;
         public string emoji;
@@ -483,8 +471,6 @@ public class Game : MonoBehaviour {
     }
 
     public void EnterNFCMode(){
-        // Prevent NFCReader from auto-entering NFC mode when a card is merely swiped
-        // on the initial screen.
         if (!nfcModeArmed) return;
         nfcModeArmed = false;
 
@@ -502,37 +488,38 @@ public class Game : MonoBehaviour {
         _nfcRoot.SetActive(true);
     }
 
-    // Invoked by NFCReader on every (debounced) card swipe.
     public void OnNFCSwipe(string uid){
         if (!nfcMode || string.IsNullOrEmpty(uid)) return;
 
-        // Already assigned to a slot? Ignore — let the player confirm/reroll/ready.
         if (blueSlot.uid == uid || redSlot.uid == uid) return;
 
         NfcSlot target = blueSlot.state == NfcSlotState.Empty ? blueSlot
             : redSlot.state == NfcSlotState.Empty ? redSlot
             : null;
-        if (target == null) return;// both already filled
+        if (target == null) return;
 
         PlayerSide side = (target == blueSlot) ? PlayerSide.Blue : PlayerSide.Red;
         target.uid = uid;
 
         var profile = ArcadeProfileManager.Get(uid);
         if (profile != null) {
-            // Registered player: swipe enters PendingReady. They must press bomb
-            // again to become Ready.
             target.state = NfcSlotState.PendingReady;
             target.name = profile.name;
             target.emoji = string.IsNullOrEmpty(profile.emoji) ? EmojiPalette.Random() : profile.emoji;
             target.isNewPlayer = false;
 
-            // Backfill emoji for legacy profiles so it persists for next time.
             if (string.IsNullOrEmpty(profile.emoji)) ArcadeProfileManager.SetEmoji(uid, target.emoji);
-            NFCSwipeFX(side);
+            NFCPlayerReadyFX(side);
+
+            Commentator.instance?.AnnouncePlayerIntro(
+                target.name,
+                profile.wins,
+                profile.losses,
+                profile.matchesPlayed,
+                false
+            );
         }
         else {
-            // New player: roll a temporary name. They must confirm first, then
-            // press bomb again to become Ready.
             target.state = NfcSlotState.PendingNewPlayer;
             target.name = NameGenerator.Roll();
             target.emoji = EmojiPalette.Random();
@@ -543,39 +530,25 @@ public class Game : MonoBehaviour {
         RebuildNFCLabels();
     }
 
-    // Player-specific key presses during NFC mode:
-    // - Empty: bomb = join anonymously and ready immediately
-    // - PendingNewPlayer: bomb = confirm nickname
-    // - PendingReady: bomb = ready / unready toggle
-    public void TryBombPressed(PlayerSide side){
-        NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
-
-        if (slot.state == NfcSlotState.Empty) {
-            TryJoinAnonymous(side);
-            return;
-        }
-
-        if (slot.state == NfcSlotState.PendingNewPlayer) {
-            TryConfirmNewPlayer(side);
-            return;
-        }
-
-        TryToggleReady(side);
-    }
-
     public void TryConfirmNewPlayer(PlayerSide side){
         NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
         if (slot.state != NfcSlotState.PendingNewPlayer) return;
 
         var p = ArcadeProfileManager.Register(slot.uid, slot.name);
 
-        // Honour the emoji rolled in the slot (so reroll picks before confirm stick).
         if (!string.IsNullOrEmpty(slot.emoji)) ArcadeProfileManager.SetEmoji(slot.uid, slot.emoji);
         else slot.emoji = p.emoji;
 
-        // Confirmed nickname, but still not ready yet.
         slot.state = NfcSlotState.PendingReady;
         slot.isNewPlayer = false;
+
+        Commentator.instance?.AnnouncePlayerIntro(
+            slot.name,
+            p.wins,
+            p.losses,
+            p.matchesPlayed,
+            true
+        );
 
         RebuildNFCLabels();
     }
@@ -592,8 +565,6 @@ public class Game : MonoBehaviour {
         }
 
         if (slot.state == NfcSlotState.Ready) {
-            // Registered player: second press cancels ready.
-            // Anonymous player: second press clears the slot.
             if (string.IsNullOrEmpty(slot.uid)) {
                 slot.Clear();
             }
@@ -608,11 +579,14 @@ public class Game : MonoBehaviour {
         NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
         if (slot.state != NfcSlotState.Empty) return;
 
-        slot.uid = "";
+        slot.uid = "-1";
         slot.name = "Anonymous Player";
-        slot.emoji = "";
+        slot.emoji = EmojiPalette.Random();
         slot.isNewPlayer = false;
-        slot.state = NfcSlotState.Ready;
+        slot.state = NfcSlotState.PendingReady;
+
+
+        Commentator.instance?.AnnouncePlayerIntro(slot.name, 0, 0, 0, true);
 
         NFCPlayerReadyFX(side);
         RebuildNFCLabels();
@@ -622,12 +596,10 @@ public class Game : MonoBehaviour {
     public void TryRerollNewPlayer(PlayerSide side){
         NfcSlot slot = side == PlayerSide.Blue ? blueSlot : redSlot;
 
-        // New player: reroll name AND emoji.
         if (slot.state == NfcSlotState.PendingNewPlayer) {
             slot.name = NameGenerator.Roll();
             slot.emoji = EmojiPalette.Random();
         }
-        // Registered/new-confirmed player: reroll emoji only and persist.
         else if (slot.state == NfcSlotState.PendingReady && !string.IsNullOrEmpty(slot.uid)) {
             slot.emoji = EmojiPalette.Random();
             ArcadeProfileManager.SetEmoji(slot.uid, slot.emoji);
@@ -673,7 +645,7 @@ public class Game : MonoBehaviour {
             case NfcSlotState.Empty:
                 return "<size=80><color=#FFFFFF>Waiting...</color></size>\n\n"
                     + "<size=50><color=#AAAAAA>Or:<color=#00FF00> Join Anonymously</color></size>";
-            
+
             case NfcSlotState.PendingNewPlayer:
                 return
                     $"{BuildDisplayName(slot)}\n" +
@@ -697,7 +669,6 @@ public class Game : MonoBehaviour {
             + "<size=60>Or:<color=#00FF00> Join Anonymously</color></size>";
     }
 
-    // Kept as a public entry point for legacy callers / manual debug flashes.
     public void NFCPlayerReady(PlayerSide side) => NFCPlayerReadyFX(side);
 
     void NFCPlayerReadyFX(PlayerSide side){
@@ -718,8 +689,6 @@ public class Game : MonoBehaviour {
         }
     }
 
-    // Small swipe-acknowledgement flash (used when a card is first detected
-    // but the player hasn't confirmed the rolled name yet).
     void NFCSwipeFX(PlayerSide side){
         if (side == PlayerSide.Blue) {
             BlinkScreen(BlinkSide.Left);
@@ -738,7 +707,6 @@ public class Game : MonoBehaviour {
     public void NFCStartMatch(){
         if (!nfcMode) return;
 
-        // Brief "GO!" flash before hiding NFC UI
         _nfcTitle.text = "GO!";
         _nfcTitle.color = new Color(0, 1f, 0.3f);
         BlinkScreen(BlinkSide.Fullscreen);
@@ -754,8 +722,6 @@ public class Game : MonoBehaviour {
             playerBlue.Init();
             playerRed.Init();
 
-            // StartMatch → Reset clears profile fields, so assign after and
-            // refresh the scoreboard labels to reflect the NFC-chosen names.
             string blueUid = blueSlot.uid, blueName = blueSlot.name, blueEmoji = blueSlot.emoji;
             string redUid = redSlot.uid, redName = redSlot.name, redEmoji = redSlot.emoji;
 
@@ -768,40 +734,46 @@ public class Game : MonoBehaviour {
             playerRed.profileName = redName;
             playerRed.profileEmoji = redEmoji;
             RefreshMatchNameLabels();
-        }, 1f);
+        }, 0.6f);
     }
 
     public void Update(){
-        if (!matchRunning && !countdownText.IsActive() && !selectedSingleMode && selectAction.WasPressedThisFrame()) {
+        if (!matchRunning && !countdownText.IsActive() && selectAction.WasPressedThisFrame()) {
             Reset();
             StopAllCoroutines();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        if (nfcMode) {
+        if (nfcMode && !matchStarted && !countdownText.IsActive()) {
             if (escapeAction.WasPressedThisFrame()) {
                 nfcMode = false;
                 Reset();
                 return;
             }
 
-            // Each side uses its own bomb key for:
-            // - empty slot: anonymous join
-            // - new player: confirm nickname
-            // - registered player: ready / unready toggle
-            if (playerBlue.placeBomb.WasPressedThisFrame()) TryBombPressed(PlayerSide.Blue);
+            if (blueSlot.state == NfcSlotState.Empty && playerBlue.placeBomb.WasPressedThisFrame()) TryJoinAnonymous(PlayerSide.Blue);
+            else if (redSlot.state == NfcSlotState.Empty && playerRed.placeBomb.WasPressedThisFrame()) TryJoinAnonymous(PlayerSide.Red);
+            else if (playerBlue.placeBomb.WasPressedThisFrame()) {
+                if (blueSlot.state == NfcSlotState.PendingNewPlayer) TryConfirmNewPlayer(PlayerSide.Blue);
+                else TryToggleReady(PlayerSide.Blue);
+            }
+            else if (playerRed.placeBomb.WasPressedThisFrame()) {
+                if (redSlot.state == NfcSlotState.PendingNewPlayer) TryConfirmNewPlayer(PlayerSide.Red);
+                else TryToggleReady(PlayerSide.Red);
+            }
+
             if (playerBlue.dash.WasPressedThisFrame()) TryRerollNewPlayer(PlayerSide.Blue);
-            if (playerRed.placeBomb.WasPressedThisFrame()) TryBombPressed(PlayerSide.Red);
             if (playerRed.dash.WasPressedThisFrame()) TryRerollNewPlayer(PlayerSide.Red);
+
+
             return;
         }
 
-        // 双人模式入口：进入 NFC 界面，不直接开赛
-        if (mainMenuUI.activeSelf && !countdownText.IsActive() && rightAction.WasPressedThisFrame()) {
+        if (!matchStarted && !countdownText.IsActive() && rightAction.WasPressedThisFrame()) {
             BeginNFCModeFromMenu();
             return;
         }
-        else if (leftAction.WasPressedThisFrame() && !countdownText.IsActive()) {
+        else if (!matchStarted && leftAction.WasPressedThisFrame() && !countdownText.IsActive()) {
             if (selectedSingleMode) {
                 playerBlue.device = PlayerControlDevice.Gamepad;
                 playerRed.device = PlayerControlDevice.AI;
@@ -815,7 +787,7 @@ public class Game : MonoBehaviour {
                 difficultyUI.SetActive(true);
             }
         }
-        else if (selectAction.WasPressedThisFrame() && selectedSingleMode) {
+        else if (!matchStarted && !countdownText.IsActive() && selectAction.WasPressedThisFrame() && selectedSingleMode) {
             playerRed.device = PlayerControlDevice.AI;
             playerRed.aiDecisionInterval = 0.01f;
             playerRed.Init();
