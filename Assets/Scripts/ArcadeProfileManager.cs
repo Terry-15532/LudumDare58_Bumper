@@ -19,7 +19,7 @@ public static class ArcadeProfileManager {
 
     public static string FilePath => Path.Combine(Application.persistentDataPath, FileName);
 
-    public static void EnsureLoaded() {
+    public static void EnsureLoaded(){
         if (loaded) return;
         loaded = true;
 
@@ -31,41 +31,46 @@ public static class ArcadeProfileManager {
             foreach (var p in db.profiles) {
                 if (!string.IsNullOrEmpty(p.uid)) byUid[p.uid] = p;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Debug.LogWarning($"[ArcadeProfileManager] Failed to load: {e.Message}");
         }
     }
 
-    public static ArcadeProfile Get(string uid) {
+    public static ArcadeProfile Get(string uid){
         EnsureLoaded();
         return byUid.TryGetValue(uid, out var p) ? p : null;
     }
 
-    public static bool Has(string uid) {
+    public static bool Has(string uid){
         EnsureLoaded();
         return byUid.ContainsKey(uid);
     }
 
-    public static ArcadeProfile Register(string uid, string name) {
+    public static ArcadeProfile Register(string uid, string name){
         EnsureLoaded();
         var p = new ArcadeProfile {
-            uid           = uid,
-            name          = name,
+            uid = uid,
+            name = name,
             createdAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             matchesPlayed = 0,
-            wins          = 0,
-            losses        = 0,
-            draws         = 0,
-            points        = 0,
-            emoji         = EmojiPalette.Random(),
+            wins = 0,
+            losses = 0,
+            draws = 0,
+            points = 0,
+            emoji = EmojiPalette.Random(),
         };
-        byUid[uid] = p;
+        if (Has(uid)) {
+            Debug.LogWarning($"[ArcadeProfileManager] UID {uid} already registered; overwriting.");
+            byUid[uid] = p;
+        }
+        else {
+            byUid.Add(uid, p);
+        }
         Save();
         return p;
     }
 
-    public static void Rename(string uid, string name) {
+    public static void Rename(string uid, string name){
         EnsureLoaded();
         if (byUid.TryGetValue(uid, out var p)) {
             p.name = name;
@@ -73,7 +78,7 @@ public static class ArcadeProfileManager {
         }
     }
 
-    public static void SetEmoji(string uid, string emoji) {
+    public static void SetEmoji(string uid, string emoji){
         EnsureLoaded();
         if (byUid.TryGetValue(uid, out var p)) {
             p.emoji = emoji;
@@ -81,25 +86,33 @@ public static class ArcadeProfileManager {
         }
     }
 
-    public static void RecordMatchResult(string uid, MatchOutcome outcome) {
+    public static void RecordMatchResult(string uid, MatchOutcome outcome){
         EnsureLoaded();
         if (!byUid.TryGetValue(uid, out var p)) return;
         p.matchesPlayed++;
         switch (outcome) {
-            case MatchOutcome.Win:  p.wins++;   p.points += 3; break;
-            case MatchOutcome.Loss: p.losses++; p.points -= 1; break;
-            case MatchOutcome.Draw: p.draws++;  p.points += 1; break;
+            case MatchOutcome.Win:
+                p.wins++;
+                p.points += 3;
+                break;
+            case MatchOutcome.Loss:
+                p.losses++;
+                p.points -= 1;
+                break;
+            case MatchOutcome.Draw:
+                p.draws++;
+                p.points += 1;
+                break;
         }
         if (p.points < 0) p.points = 0;
         Save();
     }
 
-    public static void Save() {
+    public static void Save(){
         var db = new ArcadeProfileDb { profiles = new List<ArcadeProfile>(byUid.Values) };
         try {
             File.WriteAllText(FilePath, JsonUtility.ToJson(db, prettyPrint: true));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Debug.LogWarning($"[ArcadeProfileManager] Failed to save: {e.Message}");
         }
     }

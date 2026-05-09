@@ -44,7 +44,7 @@ public class BombController : MonoBehaviour {
         t = 0;
         SoundSys.PlaySound("Explosion").audioSource.volume = 0.2f;
         CameraShake.Shake(0.6f, 0.3f);
-        Game.instance.BlinkScreen(BlinkSide.Fullscreen);
+        // Game.instance.BlinkScreen(BlinkSide.Fullscreen);
         CameraShake.Shake(0.6f, 0.3f);
         while (t < explosionDuration) {
             t += Time.deltaTime;

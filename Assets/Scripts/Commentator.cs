@@ -129,7 +129,7 @@ public class Commentator : MonoBehaviour {
                 "And that is game! What an absolutely phenomenal display of skill we've just witnessed!",
                 "Time is up! It's all over! I cannot believe my eyes, what a breathtaking conclusion to an unforgettable match!",
                 "The final whistle blows! A historic finish that we'll be talking about for years to come! Absolutely spectacular!",
-                "Match Ends! The dust settles and the winner stands tall! Truly a masterful performance from start to finish!"
+                "Match Ends! The dust settles and the players stand tall! Truly a masterful performance from start to finish!"
             }
         }
     };
@@ -435,7 +435,7 @@ public class Commentator : MonoBehaviour {
                         contrast = "Now Blue leads at " + $"{blueScore} - {redScore}.";
                     }
                     else if (redLeading) {
-                        contrast = "Now Red leads at" + $"{redScore} - {blueScore}.";
+                        contrast = "Now Red leads at " + $"{redScore} - {blueScore}.";
                     }
                     else {
                         contrast = "And the score is tied at " + $"{blueScore}! What a close match!";
@@ -538,51 +538,51 @@ public class Commentator : MonoBehaviour {
         }
 
         // 生成 fallback 文本（用作 LLM prompt 或直接使用）
-        string fallbackText = GenerateFallbackCommentary(events, blueScore, redScore, timeLeft, maxTimeLeft);
+        string fallbackText =  GenerateFallbackCommentary(events, blueScore, redScore, timeLeft, maxTimeLeft);
 
         // 如果 LLM 不可用，直接使用 fallback
-        if (true) {
-            if (!string.IsNullOrEmpty(fallbackText)) {
-                voiceLineQueue.Enqueue(fallbackText);
-            }
-            lastCommentaryTime = Time.time;
-            return;
+        if (!string.IsNullOrEmpty(fallbackText)) {
+            voiceLineQueue.Enqueue(fallbackText);
         }
-
-        isGenerating = true;
-
-        if (events.Contains(CommentaryEvent.Victory)) {
-            string victoryPrompt = $"{fallbackText} Final Score: Blue {blueScore} - Red {redScore}. Make a memorable closing statement for the match.";
-            SendPrompt(victoryPrompt);
-            return;
-        }
-
-        if (events.Contains(CommentaryEvent.GameStart)) {
-            SendPrompt(fallbackText);
-            return;
-        }
-
-        // Update simple lead history
-        // int diff = blueScore - redScore;
-        // if (diff > maxLeadBlue) maxLeadBlue = diff;
-        // if (-diff > maxLeadRed) maxLeadRed = -diff;
-
-        // Check if Tie or Leading
-        string matchStatus = blueScore == redScore ? "Tie" : (blueScore > redScore ? "Blue leading" : "Red leading");
-
-        // Provide context about the length of the match
-        string timeContext = "";
-        if (timeLeft > maxTimeLeft * 0.7f) timeContext = "Early game";
-        else if (timeLeft > maxTimeLeft * 0.4f) timeContext = "Mid game";
-        else if (timeLeft > 15f) timeContext = "Late game";
-        else timeContext = "final countdown";
-
-        // Build prompt with fallback as base, asking LLM to improve/optimize it
-        string llmPrompt = $"{fallbackText}. Context: {timeContext}.";
-
-        Debug.Log($"Fallback: {fallbackText}");
-        Debug.Log($"LLM Prompt: {llmPrompt}");
-        SendPrompt(llmPrompt);
+        lastCommentaryTime = Time.time;
+        // return;
+        // if (true) {
+        // }
+        //
+        // isGenerating = true;
+        //
+        // if (events.Contains(CommentaryEvent.Victory)) {
+        //     string victoryPrompt = $"{fallbackText} Final Score: Blue {blueScore} - Red {redScore}. Make a memorable closing statement for the match.";
+        //     SendPrompt(victoryPrompt);
+        //     return;
+        // }
+        //
+        // if (events.Contains(CommentaryEvent.GameStart)) {
+        //     SendPrompt(fallbackText);
+        //     return;
+        // }
+        //
+        // // Update simple lead history
+        // // int diff = blueScore - redScore;
+        // // if (diff > maxLeadBlue) maxLeadBlue = diff;
+        // // if (-diff > maxLeadRed) maxLeadRed = -diff;
+        //
+        // // Check if Tie or Leading
+        // string matchStatus = blueScore == redScore ? "Tie" : (blueScore > redScore ? "Blue leading" : "Red leading");
+        //
+        // // Provide context about the length of the match
+        // string timeContext = "";
+        // if (timeLeft > maxTimeLeft * 0.7f) timeContext = "Early game";
+        // else if (timeLeft > maxTimeLeft * 0.4f) timeContext = "Mid game";
+        // else if (timeLeft > 15f) timeContext = "Late game";
+        // else timeContext = "final countdown";
+        //
+        // // Build prompt with fallback as base, asking LLM to improve/optimize it
+        // string llmPrompt = $"{fallbackText}. Context: {timeContext}.";
+        //
+        // Debug.Log($"Fallback: {fallbackText}");
+        // Debug.Log($"LLM Prompt: {llmPrompt}");
+        // SendPrompt(llmPrompt);
     }
 
     private void SendPrompt(string prompt){
@@ -611,10 +611,10 @@ public class Commentator : MonoBehaviour {
     private IEnumerator PlayVoiceLine(string text){
         isSpeaking = true;
 
-        Debug.Log($"[COMMENTATOR]: {text}");
+        // Debug.Log($"[COMMENTATOR]: {text}");
 
         string ttsText = System.Text.RegularExpressions.Regex.Replace(text, @"(\d+)\s*-\s*(\d+)", "$1 to $2");
-        var ttsTask = piper.TextToSpeechAsync(ttsText);
+        var ttsTask = piper.TextToSpeechAsync("[COMMENTATOR]: " + ttsText);
 
         if (subtitleCoroutine != null) StopCoroutine(subtitleCoroutine);
         subtitleCoroutine = StartCoroutine(ShowSubtitle(text));

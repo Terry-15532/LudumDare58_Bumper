@@ -384,6 +384,7 @@ MonoBehaviour:
   nfcReader: {fileID: 0}
   selectedSingleMode: 0
   nfcMode: 0
+  nfcModeArmed: 0
 --- !u!1 &55286810
 GameObject:
   m_ObjectHideFlags: 0
@@ -845,7 +846,7 @@ MonoBehaviour:
   doubleScoreDuration: 0
   trail: {fileID: 2067322181}
   bombPlaced: 0
-  dashForce: 15
+  dashForce: 150
   dashCooldown: 2
   shieldDuration: 1.5
   shieldCooldown: 4
@@ -10873,7 +10874,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &1897329775
@@ -11794,7 +11795,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36cd29f774b6aab4680e90dbd681ad42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Commentator
-  llmAgent: {fileID: 0}
   commentaryCooldown: 7
   eventBufferTime: 0.3
   testString: 
@@ -12349,7 +12349,7 @@ MonoBehaviour:
   doubleScoreDuration: 0
   trail: {fileID: 1574052020}
   bombPlaced: 0
-  dashForce: 15
+  dashForce: 150
   dashCooldown: 2
   shieldDuration: 1.5
   shieldCooldown: 4

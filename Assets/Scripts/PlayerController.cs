@@ -159,7 +159,7 @@ public class PlayerController : MonoBehaviour {
     // Color[] originalMaterialColors;
     Vector4 currentBuffOutlineColor = Vector4.zero;
 
-    public void RestoreOutlineColor() {
+    public void RestoreOutlineColor(){
         if (!shieldActive && mr != null) {
             mr.materials[0].SetVector(Wall.outerColorIndex, currentBuffOutlineColor);
         }
@@ -392,7 +392,7 @@ public class PlayerController : MonoBehaviour {
                     // 1. Evaluate targets (coin vs pickups)
                     Vector3 bestTargetPos = coinObj != null ? coinObj.transform.position : Vector3.zero;
                     float bestScore = -1f;
-                    
+
                     if (coinObj != null) {
                         float coinDist = Vector3.Distance(myPos, coinObj.transform.position);
                         bestScore = (Time.time < doubleScoreUntil ? 200f : 100f) / Mathf.Max(1f, coinDist);
@@ -427,7 +427,7 @@ public class PlayerController : MonoBehaviour {
                     float enemyDist = Vector3.Distance(myPos, enemyPos);
                     Vector3 toEnemy = (enemyPos - myPos);
                     toEnemy.y = 0;
-                    
+
                     bool isInvincible = Time.time < invincibleUntil;
                     Vector3 avoidEnemy = Vector3.zero;
 
@@ -436,7 +436,8 @@ public class PlayerController : MonoBehaviour {
                         if (enemyBlocking) {
                             avoidEnemy = Vector3.Cross(toEnemy.normalized, Vector3.up) * 2f;
                         }
-                    } else if (enemyDist < 5f) {
+                    }
+                    else if (enemyDist < 5f) {
                         // Chase enemy if invincible!
                         moveDir = toEnemy.normalized * 1.5f;
                     }
@@ -450,21 +451,21 @@ public class PlayerController : MonoBehaviour {
                         bool tryKill = isInvincible && enemyDist < 4f && Vector3.Dot(toEnemy.normalized, aiLastDirection) > 0.8f;
                         // Require stronger alignment and more distance before dashing at a target
                         bool clearPathToTarget = Vector3.Dot(toTarget.normalized, aiLastDirection) > 0.9f && toTarget.magnitude > 5f;
-                        
+
                         // Predict a conservative landing position (shorter than theoretical max) and ensure it's well inside bounds
-                        float predictedDistance = 3.5f; // conservative estimated dash distance
+                        float predictedDistance = 3.5f;// conservative estimated dash distance
                         Vector3 predictedLanding = myPos + aiLastDirection.normalized * predictedDistance;
                         bool landingWithinBounds = Mathf.Abs(predictedLanding.x) < 7f && Mathf.Abs(predictedLanding.z) < 4f;
-                        
+
                         // Also avoid dashing when currently close to the edge
                         bool tooCloseToEdgeNow = Mathf.Abs(myPos.x) > 6f || Mathf.Abs(myPos.z) > 3f;
-                        
+
                         bool safeToDash = landingWithinBounds && !tooCloseToEdgeNow;
 
                         if (safeToDash && (tryKill || (clearPathToTarget && enemyCloserToTarget))) {
                             // Use the stick direction (aiLastDirection) as dash direction
-                            aiCurrentDirection = aiLastDirection; 
-                            direction = aiLastDirection; 
+                            aiCurrentDirection = aiLastDirection;
+                            direction = aiLastDirection;
                             PerformDash();
                         }
                     }
@@ -476,9 +477,10 @@ public class PlayerController : MonoBehaviour {
                             // Occasional taunts if enemy is dead (not too frequently so it's not tiring)
                             if (tauntCooldownLeft <= 2.8f && UnityEngine.Random.value < 0.15f) {
                                 PerformTaunt();
-                                tauntCooldownLeft = 1.0f; // Soften the spam frequency
+                                tauntCooldownLeft = 1.0f;// Soften the spam frequency
                             }
-                        } else if (tauntCooldownLeft <= 0.01f && isInvincible && UnityEngine.Random.value < 0.02f) {
+                        }
+                        else if (tauntCooldownLeft <= 0.01f && isInvincible && UnityEngine.Random.value < 0.02f) {
                             // Occasional taunt when feeling deeply powerful
                             PerformTaunt();
                         }
@@ -547,31 +549,31 @@ public class PlayerController : MonoBehaviour {
         SoundSys.PlaySound("Dash").audioSource.volume = 1f;
         EmojiReaction.Spawn(player.transform, DashEmoji);
         // Commentator.instance?.TriggerEvent(side == PlayerSide.Blue ? CommentaryEvent.BlueDash : CommentaryEvent.RedDash, 1.5f);
-         // // Dash towards the opponent; fall back to movement direction or forward
-         // PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
-         // Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
-         // toOpponent.y = 0;
-         // Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
-         rb.linearVelocity = direction * dashForce;
-         dashCooldownLeft = dashCooldown;
+        // // Dash towards the opponent; fall back to movement direction or forward
+        // PlayerController opponent = side == PlayerSide.Blue ? Game.instance.playerRed : Game.instance.playerBlue;
+        // Vector3 toOpponent = opponent.player.transform.position - player.transform.position;
+        // toOpponent.y = 0;
+        // Vector3 d = toOpponent.magnitude > 0.5f ? toOpponent.normalized : (direction.magnitude > 0.1f ? direction.normalized : transform.forward);
+        rb.AddForce(direction * dashForce);
+        dashCooldownLeft = dashCooldown;
 
-         SoundSys.PlaySound("Hit").audioSource.volume = 1f;
-         CameraShake.Shake(0.35f, 0.18f);
+        SoundSys.PlaySound("Hit").audioSource.volume = 1f;
+        CameraShake.Shake(0.35f, 0.18f);
 
-         // Smoke burst
-         SetSmokeIntensitySmooth(2.5f, 0.05f);
-         Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
+        // Smoke burst
+        SetSmokeIntensitySmooth(2.5f, 0.05f);
+        Tools.CallDelayed(() => SetSmokeIntensitySmooth(0f, 0.3f), 0.2f);
 
-         // Outline flash in player color
-         var dashColor = side == PlayerSide.Blue
-             ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
-             : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
-         mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
-         Tools.CallDelayed(() => RestoreOutlineColor(), 0.2f);
+        // // Outline flash in player color
+        // var dashColor = side == PlayerSide.Blue
+        //     ? new Vector4(0.1f, 0.5f, 1.2f, 1) * 12f
+        //     : new Vector4(1.2f, 0.1f, 0.1f, 1) * 12f;
+        // mr.materials[0].SetVector(Wall.outerColorIndex, dashColor);
+        // Tools.CallDelayed(() => RestoreOutlineColor(), 0.2f);
 
-         // Screen blink on own side
-         Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
-     }
+        // Screen blink on own side
+        // Game.instance.BlinkScreen(side == PlayerSide.Blue ? BlinkSide.Left : BlinkSide.Right);
+    }
 
     // ── Shield ────────────────────────────────────────────────────────────
     // public void ActivateShield(){
