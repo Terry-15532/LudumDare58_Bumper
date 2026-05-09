@@ -113,10 +113,11 @@ public class Commentator : MonoBehaviour {
             }
         }, {
             CommentaryEvent.Victory, new List<string> {
-                "And that is game! What an absolutely phenomenal display of skill we've just witnessed!",
-                "Time is up! It's all over! I cannot believe my eyes, what a breathtaking conclusion to an unforgettable match!",
-                "The final whistle blows! A historic finish that we'll be talking about for years to come! Absolutely spectacular!",
-                "Match Ends! The dust settles and the players stand tall! Truly a masterful performance from start to finish!"
+                "Time's up! What an absolutely phenomenal display of skill!",
+                "Time is up! What a breathtaking conclusion to an unforgettable match!",
+                "The final whistle blows! A historic finish!",
+                "Match Ends! Truly a masterful performance from start to finish!",
+                "Finish! The dust settles and the players stand tall!"
             }
         }
     };
@@ -449,15 +450,15 @@ public class Commentator : MonoBehaviour {
 
         if (blueScore > redScore) {
             string winner = GetWinnerName(Game.instance.playerBlue, "Blue");
-            return $"{winner} takes the victory! Final score, {blueScore} - {redScore}! What a finish!";
+            return $"Congratulations to {winner} taking the victory! Final score, {blueScore} - {redScore}!";
         }
 
         if (redScore > blueScore) {
             string winner = GetWinnerName(Game.instance.playerRed, "Red");
-            return $"{winner} takes the victory! Final score, {redScore} - {blueScore}! What a finish!";
+            return $"Congratulations to {winner} taking the victory! Final score, {redScore} - {blueScore}!";
         }
 
-        return $"It ends in a draw! Final score, {blueScore} - {redScore}! Neither side gives an inch!";
+        return $"It ends in a draw! Final score, {blueScore} - {redScore}! Neither side gives an inch out!";
     }
 
     private string GenerateFallbackCommentary(List<CommentaryEvent> events, int blueScore, int redScore, float timeLeft, float maxTimeLeft){
@@ -465,9 +466,8 @@ public class Commentator : MonoBehaviour {
 
         CommentaryEvent mainEvent = events[0];
 
-        if (mainEvent == CommentaryEvent.Victory) {
-            return BuildVictoryLine(blueScore, redScore);
-        }
+        // if (mainEvent == CommentaryEvent.Victory) {
+        // }
 
         if (fallbackCommentary.ContainsKey(mainEvent) && fallbackCommentary[mainEvent].Count > 0) {
             string fallback = fallbackCommentary[mainEvent][Random.Range(0, fallbackCommentary[mainEvent].Count)];
@@ -490,17 +490,17 @@ public class Commentator : MonoBehaviour {
                 case CommentaryEvent.BlueDash:
                     if (redLeading) {
                         contrast = new string[] {
-                            "But Red is leading " + $"{redScore} - {blueScore}!!!",
-                            "Yet Red still holds the lead at " + $"{redScore} - {blueScore}!!!",
-                            "Still, Red is ahead with a score of " + $"{redScore} - {blueScore}!!!"
+                            "But Red is leading " + $"{redScore} - {blueScore}!",
+                            "Yet Red still holds the lead at " + $"{redScore} - {blueScore}!",
+                            "Still, Red is ahead with a score of " + $"{redScore} - {blueScore}!"
                         }[Random.Range(0, 3)];
                     }
                     else if (blueLeading) {
                         contrast = new string[] {
-                            "That extends Blue's advantage to " + $"{blueScore} - {redScore}!!!",
-                            "Blue is pulling away at " + $"{blueScore} - {redScore}!!!",
-                            "Blue's lead grows to " + $"{blueScore} - {redScore}!!!",
-                            "And Blue is getting further ahead at " + $"{blueScore} - {redScore}!!!"
+                            "That extends Blue's advantage to " + $"{blueScore} - {redScore}!",
+                            "Blue is pulling away at " + $"{blueScore} - {redScore}!",
+                            "Blue's lead grows to " + $"{blueScore} - {redScore}!",
+                            "And Blue is getting further ahead at " + $"{blueScore} - {redScore}!"
                         }[Random.Range(0, 4)];
                     }
                     break;
@@ -511,53 +511,82 @@ public class Commentator : MonoBehaviour {
                 case CommentaryEvent.RedDash:
                     if (blueLeading) {
                         contrast = new string[] {
-                            "But Blue is leading " + $"{blueScore} - {redScore}!!!",
-                            "Yet Blue still holds the lead at " + $"{blueScore} - {redScore}!!!",
-                            "Still, Blue is ahead with a score of " + $"{blueScore} - {redScore}!!!"
+                            "But Blue is leading " + $"{blueScore} - {redScore}!",
+                            "Yet Blue still holds the lead at " + $"{blueScore} - {redScore}!",
+                            "Still, Blue is ahead with a score of " + $"{blueScore} - {redScore}!"
                         }[Random.Range(0, 3)];
                     }
                     else if (redLeading) {
                         contrast = new string[] {
-                            "That extends Red's advantage to " + $"{redScore} - {blueScore}!!!",
-                            "Red is pulling away at " + $"{redScore} - {blueScore}!!!",
-                            "Red's lead grows to " + $"{redScore} - {blueScore}!!!",
-                            "And Red is getting further ahead at " + $"{redScore} - {blueScore}!!!"
+                            "That extends Red's advantage to " + $"{redScore} - {blueScore}!",
+                            "Red is pulling away at " + $"{redScore} - {blueScore}!",
+                            "Red's lead grows to " + $"{redScore} - {blueScore}!",
+                            "And Red is getting further ahead at " + $"{redScore} - {blueScore}!"
                         }[Random.Range(0, 4)];
                     }
                     break;
 
                 case CommentaryEvent.HalfTime:
                     if (blueLeading) {
-                        contrast = "Now Blue leads at " + $"{blueScore} - {redScore}!!!";
+                        contrast = "Now Blue leads at " + $"{blueScore} - {redScore}!";
                     }
                     else if (redLeading) {
-                        contrast = "Now Red leads at " + $"{redScore} - {blueScore}!!!";
+                        contrast = "Now Red leads at " + $"{redScore} - {blueScore}!";
                     }
                     else {
-                        contrast = "And the score is tied at " + $"{blueScore} - {redScore}!!!";
+                        contrast = "And the score is tied at " + $"{blueScore} - {redScore}!";
                     }
                     break;
 
                 case CommentaryEvent.FifteenSeconds:
                     if (blueLeading) {
-                        contrast = "Now Blue is still leading at " + $"{blueScore} - {redScore}!!!";
+                        contrast = "Now Blue is still leading at " + $"{blueScore} - {redScore}!";
                     }
                     else if (redLeading) {
-                        contrast = "Now Red is still leading at " + $"{redScore} - {blueScore}!!!";
+                        contrast = "Now Red is still leading at " + $"{redScore} - {blueScore}!";
                     }
                     else {
-                        contrast = "With only 15 seconds remaining, it is still tied!!!";
+                        contrast = "With only 15 seconds remaining, it is still tied!";
                     }
                     break;
+                case CommentaryEvent.Victory:
+                    contrast = BuildVictoryLine(blueScore, redScore);
+                    break;
+                case CommentaryEvent.GameStart:
+                    // No contrast needed for game start
+                    contrast = "";
+                    break;
+                default:
+                    contrast = "";
+                    break;
+            }
+
+            // Special handling for Victory/HalfTime branches that previously appended score info inside fallback
+            if (mainEvent == CommentaryEvent.Victory) {
+                // Replace fallback entirely with a more emphatic closing if contrast already contains the score statement
+                if (!string.IsNullOrEmpty(contrast)) {
+                    // Use existing fallback as opener then add the contrast (which already includes final score)
+                    if (!fallback.EndsWith("!") && !fallback.EndsWith(".") && !fallback.EndsWith("?")) fallback += ".";
+                    fallback += " " + contrast;
+                    return fallback;
+                }
+            }
+
+            if (mainEvent == CommentaryEvent.HalfTime) {
+                // HalfTime fallback handled: attach the halftime score phrase
+                if (!string.IsNullOrEmpty(contrast)) {
+                    AppendContrast(contrast);
+                    return fallback;
+                }
             }
 
             if (!string.IsNullOrEmpty(contrast) && mainEvent != CommentaryEvent.Victory && mainEvent != CommentaryEvent.HalfTime) {
                 if (fallback.Contains("score is tied") || fallback.Contains("ahead") || fallback.Contains("leading") || fallback.Contains("wins") || fallback.Contains("takes the victory") || fallback.Contains("draw")) {
                     if (redLeading && (mainEvent == CommentaryEvent.BlueDoubleScore || mainEvent == CommentaryEvent.BlueInvincible || mainEvent == CommentaryEvent.BlueKill || mainEvent == CommentaryEvent.BlueDash)) {
-                        AppendContrast("Still, Blue needs more to close the gap!!!");
+                        AppendContrast("Still, Blue needs more to close the gap!");
                     }
                     else if (blueLeading && (mainEvent == CommentaryEvent.RedDoubleScore || mainEvent == CommentaryEvent.RedInvincible || mainEvent == CommentaryEvent.RedKill || mainEvent == CommentaryEvent.RedDash)) {
-                        AppendContrast("Still, Red has to push harder to catch up!!!");
+                        AppendContrast("Still, Red has to push harder to catch up!");
                     }
                 }
                 else {
